@@ -1,13 +1,13 @@
 <div align="center">
 
-# 🚀 RecoverAI — Intelligent Payment Recovery ML Pipeline
+# 🚀 RecoverAI — Intelligent Payment Recovery System
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API_Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![CatBoost](https://img.shields.io/badge/CatBoost-ML_Engine-FFCC00?style=for-the-badge&logo=yandex&logoColor=black)](https://catboost.ai)
-[![Pandas](https://img.shields.io/badge/Pandas-Data_Processing-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-> **RecoverAI** is an end-to-end Machine Learning pipeline that predicts whether a failed financial transaction can be recovered. It generates a synthetic hybrid dataset from real Kaggle transactions and trains a robust CatBoost model.
+> **RecoverAI** is an end-to-end Machine Learning pipeline and interactive Operator Dashboard that predicts whether a failed financial transaction can be recovered. It uses a **CatBoost AI model** combined with a robust **FastAPI backend** and a beautiful frontend interface.
 
 ---
 
@@ -16,12 +16,12 @@
 ## 📌 Table of Contents
 
 - [Problem Statement](#-problem-statement)
+- [System Architecture](#-system-architecture)
 - [Project Features](#-project-features)
 - [ML Pipeline Workflow](#-ml-pipeline-workflow)
-- [Data Engineering & Features](#-data-engineering--features)
 - [Project Structure](#-project-structure)
 - [Quick Start Guide](#-quick-start-guide)
-- [Model Performance](#-model-performance)
+- [API Endpoints](#-api-endpoints)
 
 ---
 
@@ -29,24 +29,51 @@
 
 Every day, **millions of financial transactions fail** due to network errors, insufficient funds, or timeouts. Knowing exactly which transactions have a high probability of recovery can save businesses millions in lost revenue. 
 
-**RecoverAI** tackles this by predicting — using a CatBoost model trained on 300,000 hybrid transactions — the likelihood of a transaction being successfully recovered within 72 hours.
+**RecoverAI** tackles this by predicting the likelihood of a transaction being successfully recovered within 72 hours, offering actionable recommendations like `Smart Retry`, `Delayed Retry`, or `Human Review`.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    classDef ui fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef api fill:#fff8e1,stroke:#ff8f00,stroke-width:2px;
+    classDef core fill:#ffebee,stroke:#c62828,stroke-width:2px;
+    classDef db fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+
+    UI["💻 Frontend<br>(HTML/CSS/JS)"]:::ui <-->|HTTP/REST| API["🔌 FastAPI Backend<br>(main.py | Port 8000)"]:::api
+    
+    API -->|PaymentEvent JSON<br>(Input)| GR["🛡️ Guardrail Layer<br>(5 Rules)"]:::core
+    
+    GR -->|Passes| ML["🧠 CatBoost Policy Engine<br>(*.cbm model)"]:::core
+    GR -.->|Fails| Forced["🚨 Forced Action<br>(e.g. human_review)"]:::core
+    
+    ML -->|RecoveryDecision<br>(Output)| DB[("💾 SQLite Audit DB<br>(database.py)")]:::db
+    Forced --> DB
+```
+
+## 📥 Input & 📤 Output Details
+
+**Input (PaymentEvent JSON):** The API accepts a payload detailing the failed transaction, including amount, merchant, customer history, previous failures, and device data.  
+**Output (RecoveryDecision):** The API responds with the recommended action (e.g., `smart_retry`, `human_review`), the confidence probability (0.0 to 1.0), and flags indicating if a guardrail triggered the decision.
 
 ---
 
 ## ✨ Project Features
 
-### 🛠️ Hybrid Data Engineering
-- Automatically downloads real-world data (PaySim, Financial Transactions, Credit Card Fraud) from Kaggle.
-- Engineers a comprehensive 360,000-row dataset containing 26 carefully crafted features.
-- Imputes missing categories, temporal patterns (hour, day, weekend), and customer behaviors.
+### 💻 Operator Dashboard (Frontend)
+- Real-time monitoring of failed transactions.
+- Beautiful, responsive UI to review "Human Review" cases.
+- Analytics and graphs tracking recovery rates.
+
+### 🛡️ Guardrail Engine & API
+- **FastAPI** backend exposing REST endpoints for transaction processing.
+- A **Guardrail Layer** that forces manual review for high-value or high-risk transactions before hitting the ML model.
 
 ### 🧠 Machine Learning Engine
 - Uses **CatBoostClassifier** natively handling categorical features without the need for manual one-hot encoding.
 - Incorporates early stopping with AUC-optimised evaluation.
-- Outputs detailed evaluation metrics and feature importance rankings.
-
-### 📊 Exploratory Data Analysis (EDA)
-- Includes automated scripts (`eda_analysis.py`, `eda_fast.py`) to visualize the distributions of amounts, categorical balances, and recovery rates.
 
 ---
 
@@ -78,41 +105,24 @@ graph TD
 
 ---
 
-## 📈 Data Engineering & Features
-
-The dataset builder script constructs 26 predictive features across 5 main categories:
-
-| Category | Features |
-|----------|---------|
-| **Transaction** | `amount`, `payment_method`, `error_reason`, `card_type`, `merchant_category`, `amount_bucket` |
-| **Customer** | `customer_segment`, `customer_age`, `account_balance`, `customer_tenure_months`, `previous_failed_attempts` |
-| **Behaviour** | `retry_count`, `risk_score`, `recovery_attempt_count`, `transaction_frequency_30d`, `time_since_last_failure_hr` |
-| **Context** | `bank`, `region`, `device_type`, `channel`, `hour_of_day`, `day_of_week`, `is_weekend` |
-| **Notifications** | `notification_sent`, `opt_out_notification`, `treatment_action` |
-
-**Target Variable:** `recovered_within_72h` (Binary Classification: 0 or 1).
-
----
-
 ## 📁 Project Structure
 
 ```text
 Revenue-AI-Tracker/
 │
 ├── 📄 README.md                      ← You are here
-├── 📄 LICENSE                        ← MIT
-├── 📄 .gitignore
+├── 📄 LICENSE                        
+│
+├── 🔌 backend/                       ← FastAPI Server & SQLite DB
+├── 🎨 frontend/                      ← HTML/JS/CSS Operator Dashboard
+├── 🧠 model/                         ← Trained CatBoost models (*.cbm)
 │
 ├── 📥 download_datasets.py           ← Downloads Raw Kaggle CSVs
 ├── 🔧 build_recoverai_dataset.py     ← Builds engineered train/val datasets
-├── 📊 eda_fast.py                    ← Fast terminal-based EDA
 ├── 📊 eda_analysis.py                ← Full EDA with graph visualisations
 ├── 🤖 train_catboost.py              ← Model training & evaluation script
-├── 🚀 run_download.py                ← Wrapper to trigger dataset download
-├── 🧪 ci_local_test.py               ← Local sanity testing script
-│
-├── 📄 requirements.txt (Optional)
-└── ⚙️  docker-compose.yml             ← Environment setup
+├── 🚀 run.py                         ← Launcher Script
+└── ⚙️  Dockerfile                     ← Docker Deployment config
 ```
 
 ---
@@ -127,46 +137,27 @@ git clone https://github.com/viRAJ357/Revenue-AI-Tracker.git
 cd Revenue-AI-Tracker
 
 # Install required python packages
-pip install pandas numpy catboost scikit-learn
+pip install -r backend/requirements.txt
 ```
 
-### 2. Download Kaggle Datasets
-*(Note: Requires a valid `kaggle.json` token configured in `~/.kaggle/`)*
+### 2. Run the Full Application
+This will start the FastAPI backend and automatically serve the interactive Dashboard on port 8000.
 ```bash
-python download_datasets.py
+python run.py
 ```
-
-### 3. Generate the Dataset
-This will merge the raw datasets and engineer the 360,000-row output files.
-```bash
-python build_recoverai_dataset.py
-```
-
-### 4. Train the Model
-Train the CatBoost model. Once completed, it will save `recoverai_catboost.cbm` and performance metrics.
-```bash
-python train_catboost.py
-```
-
-### 5. Run Exploratory Data Analysis
-```bash
-python eda_fast.py
-```
+👉 Open **http://localhost:8000** in your browser.
 
 ---
 
-## 📊 Model Performance (Expected)
+## 🔌 API Endpoints
 
-*Actual performance may vary slightly based on random seed and dataset generation.*
-
-| Metric | Target Score |
-|--------|-------|
-| 🎯 **Accuracy** | ~ **74.43%** |
-| 📈 **AUC-ROC** | ~ **0.8207** |
-| ✅ **Best Iteration** | Approx. 160-200 / 500 |
-| 🗂️ **Training Rows** | 300,000 |
-| 🧪 **Validation Rows** | 60,000 |
-| 🔢 **Features** | 26 |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/process-payment` | Core inference endpoint. Receives transaction JSON and returns recovery decision. |
+| `GET`  | `/api/dashboard-stats` | Aggregated metrics for the dashboard (recovery rate, pending reviews, etc.) |
+| `GET`  | `/api/recent-events` | Fetches the 50 most recent recovery attempts from the audit DB. |
+| `POST` | `/api/approve-action` | Operator endpoint to approve or reject a `human_review` case. |
+| `GET`  | `/api/health` | Health check for the API and Model status. |
 
 ---
 
