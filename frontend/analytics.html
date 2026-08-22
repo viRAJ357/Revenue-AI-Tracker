@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RecoverAI - Advanced Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;family=Manrope:wght@520;700&amp;display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="tailwind-config">
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            "colors": {
+                "surface-bright": "#3a393a",
+                "outline-variant": "#454655",
+                "surface-variant": "#353436",
+                "primary-container": "#7a85ff",
+                "on-surface": "#e5e2e3",
+                "background": "#131314",
+                "surface-container": "#201f21",
+                "on-background": "#e5e2e3",
+                "surface": "#131314",
+                "error-container": "#93000a",
+                "surface-container-highest": "#353436",
+                "surface-container-lowest": "#0e0e0f",
+                "surface-container-high": "#2a2a2b",
+                "secondary-fixed": "#92f1ff",
+                "surface-container-low": "#1c1b1d",
+                "outline": "#8f8fa1",
+                "secondary": "#50d8e9",
+                "primary": "#bec2ff",
+                "error": "#ffb4ab",
+                "on-surface-variant": "#c6c5d8"
+            },
+            "fontFamily": {
+                "label-sm": ["Inter"],
+                "mono-data": ["Inter"],
+                "body-md": ["Inter"],
+                "body-lg": ["Inter"],
+                "h2": ["Manrope"],
+                "h1": ["Manrope"],
+                "h4": ["Manrope"],
+                "h3": ["Manrope"]
+            }
+        }
+    }
+}
+</script>
+<style>
+  body { background-color: #131314; color: #e5e2e3; font-family: 'Inter', sans-serif; }
+  .grid-bg { background-image: linear-gradient(to right, #1B1C1E 1px, transparent 1px), linear-gradient(to bottom, #1B1C1E 1px, transparent 1px); background-size: 40px 40px; }
+  .card-inner-glow { box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1); }
+</style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full fixed left-0 top-0 z-40 w-64 pt-md pb-lg bg-surface-container-lowest border-r border-outline-variant">
+    <div class="px-md mb-lg flex items-center gap-sm mt-4">
+        <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+        <div>
+            <h1 class="font-h4 text-h4 text-on-surface tracking-wide">RecoverAI</h1>
+            <p class="font-mono-data text-mono-data text-on-surface-variant">v2.4.0-stable</p>
+        </div>
+    </div>
+    <div class="flex-1 flex flex-col gap-xs px-sm mt-8">
+        <a class="group flex items-center gap-sm px-md py-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all font-label-sm text-label-sm uppercase tracking-widest" href="index.html">
+            <span class="material-symbols-outlined">terminal</span> Command
+        </a>
+        <a class="group flex items-center gap-sm px-md py-xs text-secondary bg-surface-container-low border-r-2 border-secondary font-label-sm text-label-sm uppercase tracking-widest" href="analytics.html">
+            <span class="material-symbols-outlined">monitoring</span> Analytics
+        </a>
+        <a class="group flex items-center gap-sm px-md py-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all font-label-sm text-label-sm uppercase tracking-widest" href="#">
+            <span class="material-symbols-outlined">shield</span> Risk Rules
+        </a>
+    </div>
+</nav>
+
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col h-screen overflow-y-auto bg-background p-8">
+    <div class="flex flex-col gap-xs mb-8">
+        <h1 class="font-h1 text-h1 text-on-surface">Advanced Analytics</h1>
+        <p class="font-body-lg text-body-lg text-on-surface-variant">Performance metrics and historical recovery trends.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Recovery Success Rate Chart -->
+        <div class="bg-[#101112] border border-[#232426] rounded-xl p-6 card-inner-glow relative h-96">
+            <h2 class="font-h4 text-h4 mb-4 text-on-surface-variant flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">trending_up</span> Recovery Success Rate (%)
+            </h2>
+            <div class="absolute inset-0 top-16 p-4">
+                <canvas id="recoveryRateChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Revenue Impact Chart -->
+        <div class="bg-[#101112] border border-[#232426] rounded-xl p-6 card-inner-glow relative h-96">
+            <h2 class="font-h4 text-h4 mb-4 text-on-surface-variant flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">attach_money</span> Revenue Impact (₹)
+            </h2>
+            <div class="absolute inset-0 top-16 p-4">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="analytics.js"></script>
+</body>
+</html>

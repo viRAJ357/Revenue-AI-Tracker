@@ -80,10 +80,10 @@ CAT_FEATURES = [
 
 # Candidate treatment actions the system can recommend
 TREATMENT_ACTIONS = [
-    "smart_retry",
-    "smart_delay",
-    "send_notification",
     "silent_wait",
+    "smart_delay",
+    "payment_link",
+    "notify_payment_link",
     "human_review",
 ]
 
@@ -100,9 +100,9 @@ def _compute_amount_bucket(amount: float) -> str:
     """Bin the transaction amount into the same buckets used at training time."""
     if amount < 500:
         return "low"
-    elif amount < 5000:
+    elif amount < 2000:
         return "medium"
-    elif amount < 20000:
+    elif amount < 10000:
         return "high"
     else:
         return "very_high"
@@ -161,19 +161,19 @@ def _heuristic_scores(event) -> dict:
     Returns plausible scores so the API remains functional for demo purposes.
     """
     base = {
-        "smart_retry":       0.55,
-        "smart_delay":       0.45,
-        "send_notification": 0.50,
-        "silent_wait":       0.30,
-        "human_review":      0.20,
+        "payment_link":       0.55,
+        "smart_delay":        0.45,
+        "notify_payment_link": 0.50,
+        "silent_wait":        0.30,
+        "human_review":       0.20,
     }
 
     pm = str(getattr(event, "payment_method", "")).lower()
     if pm == "upi" and event.risk_score < 30:
-        base["smart_retry"] += 0.15
+        base["payment_link"] += 0.15
 
     if not getattr(event, "opt_out_notification", True):
-        base["send_notification"] += 0.10
+        base["notify_payment_link"] += 0.10
 
     if getattr(event, "retry_count", 0) >= 2:
         base["smart_delay"] += 0.20

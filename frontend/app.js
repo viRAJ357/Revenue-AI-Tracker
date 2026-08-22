@@ -18,6 +18,7 @@ let auditLog        = [];          // all processed events
 let recentEvents    = [];          // for the right-panel table
 let statsInterval   = null;
 let eventsInterval  = null;
+let liveWs          = null;
 
 /* ─── Action Labels (match backend TREATMENT_ACTIONS) ─── */
 const ACTION_LABELS = {
@@ -194,10 +195,22 @@ function showToast(message, type = 'info', duration = 4000) {
 
 /* ─── API Fetch Wrapper ─── */
 async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('recoverai_token');
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers,
   });
+  
+  if (response.status === 401) {
+    window.location.href = 'login.html';
+    throw new Error('Unauthorized');
+  }
+
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return await response.json();
 }
@@ -216,6 +229,12 @@ function disableDemoMode() {
   isDemoMode = false;
   document.getElementById('demoBanner').classList.remove('show');
   document.getElementById('demoBannerForm').classList.remove('show');
+}
+
+/* ─── LOGOUT ─── */
+function logout() {
+  localStorage.removeItem('recoverai_token');
+  window.location.href = 'login.html';
 }
 
 /* ─── LOAD STATS ─── */
@@ -566,12 +585,35 @@ async function submitApproval(decision) {
     decision,
     notes: null,
   };
+  const token = localStorage.getItem('recoverai_token');
 
   try {
     // Backend endpoint: POST /api/approve-action
-    await apiFetch('/approve-action', { method: 'POST', body: JSON.stringify(payload) });
+    await apiFetch('/approve-action', { 
+        method: 'POST', 
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload) 
+    });
   } catch {
     // demo mode: silently succeed
+  }
+
+  if (decision === 'approve' && lastResult.recommended_action === 'send_notification') {
+    showToast('Sending notification via Twilio/Sendgrid...', 'info', 3000);
+    try {
+        await apiFetch('/simulate-notification', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                transaction_id: lastResult.transaction_id,
+                customer_id: lastResult.transaction_id.replace('TXN-', 'CUST-'),
+                action: 'send_notification'
+            })
+        });
+        showToast('✉️ Customer successfully notified!', 'success', 5000);
+    } catch {
+        showToast('✉️ Customer notified (Simulated)', 'success', 5000);
+    }
   }
 
   const newStatus = decision === 'approve' ? 'recovered' : 'failed';
@@ -689,11 +731,159 @@ function startAutoRefresh() {
   eventsInterval = setInterval(() => loadRecentEvents(), EVENTS_REFRESH_MS);
 }
 
+/* ─── LIVE FEED WEBSOCKET ─── */
+function toggleLiveFeed(e) {
+  const isEnabled = e.target.checked;
+  const dot = document.getElementById('liveDot');
+  const label = document.getElementById('recentRefreshLabel');
+  
+  if (isEnabled) {
+    dot.style.display = 'block';
+    label.textContent = 'Live Feed ON';
+    
+    // Connect to WebSocket
+    const wsUrl = 'ws://localhost:8000/api/ws/live-events';
+    liveWs = new WebSocket(wsUrl);
+    
+    liveWs.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        
+        // Add to recent events and audit log
+        recentEvents.unshift(payload);
+        if (recentEvents.length > 20) recentEvents.pop();
+        renderRecentTable(recentEvents);
+        updateDonutChart(recentEvents);
+        
+        auditLog.unshift(payload);
+        renderAuditTable();
+        
+        showToast('New live event received!', 'info', 2000);
+      } catch (e) {
+        console.error("Error parsing WS data", e);
+      }
+    };
+    
+    liveWs.onclose = () => {
+      console.log('Live feed disconnected');
+      if (document.getElementById('liveFeedToggle').checked) {
+        showToast('Live feed connection lost. Reconnecting...', 'warning');
+        setTimeout(() => toggleLiveFeed({ target: { checked: true } }), 3000);
+      }
+    };
+  } else {
+    dot.style.display = 'none';
+    label.textContent = 'Offline';
+    if (liveWs) {
+      liveWs.close();
+      liveWs = null;
+    }
+  }
+}
+
+/* ─── CSV BATCH UPLOAD ─── */
+function openUploadModal() {
+  document.getElementById('uploadModal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+  document.getElementById('uploadModal').classList.add('hidden');
+  document.getElementById('uploadProgress').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('csvFileInput');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-primary', 'bg-primary/5');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-primary', 'bg-primary/5');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-primary', 'bg-primary/5');
+    if (e.dataTransfer.files.length) {
+      handleCsvUpload(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) {
+      handleCsvUpload(e.target.files[0]);
+    }
+  });
+});
+
+async function handleCsvUpload(file) {
+  if (!file.name.endsWith('.csv')) {
+    showToast('Please upload a valid CSV file.', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  document.getElementById('uploadProgress').classList.remove('hidden');
+  document.getElementById('uploadBar').style.width = '50%';
+  document.getElementById('uploadPercent').textContent = 'Uploading...';
+
+  try {
+    const token = localStorage.getItem('recoverai_token');
+    const response = await fetch(`${API_BASE}/upload-csv`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    if (!response.ok) throw new Error('Upload failed');
+    
+    const data = await response.json();
+    document.getElementById('uploadBar').style.width = '100%';
+    document.getElementById('uploadPercent').textContent = 'Done!';
+    
+    showToast(`Batch processed: ${data.processed} rows (${data.errors} errors)`, 'success', 5000);
+    
+    setTimeout(() => {
+      closeUploadModal();
+      loadStats(true);
+      loadRecentEvents();
+      // force reload audit logs
+      window.location.reload(); 
+    }, 1500);
+
+  } catch (error) {
+    console.error(error);
+    showToast('Failed to process CSV file.', 'error');
+    document.getElementById('uploadProgress').classList.add('hidden');
+  }
+}
+
 /* ─── INIT ─── */
 async function init() {
+  if (!localStorage.getItem('recoverai_token')) {
+    window.location.href = 'login.html';
+    return;
+  }
+
   startClock();
   regenerateTxnId();
   updateRiskBadge(document.getElementById('riskScore').value);
+
+  document.getElementById('liveFeedToggle').addEventListener('change', toggleLiveFeed);
 
   await Promise.all([
     loadStats(true),

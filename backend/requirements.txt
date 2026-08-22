@@ -5,3 +5,12 @@ pandas
 numpy
 pydantic
 scikit-learn
+python-multipart
+sqlalchemy
+psycopg2-binary
+passlib[bcrypt]
+python-jose[cryptography]
+celery
+redis
+python-dotenv
+gunicorn

@@ -5,12 +5,20 @@ Exposes the REST API for the payment recovery intelligence system.
 
 Endpoints
 ---------
-POST /api/process-payment  — Core inference endpoint
-GET  /api/dashboard-stats  — Aggregate analytics for the dashboard
-GET  /api/recent-events    — Last 50 audit records
-GET  /api/health           — Health / readiness check
-POST /api/approve-action   — Operator approves or rejects a recommendation
-GET  /api/demo-event       — Returns a pre-filled sample PaymentEvent (for demos)
+POST /api/process-payment       — Core inference endpoint
+GET  /api/dashboard-stats       — Aggregate analytics for the dashboard
+GET  /api/recent-events         — Last 50 audit records
+GET  /api/health                — Health / readiness check
+POST /api/approve-action        — Operator approves or rejects a recommendation
+GET  /api/demo-event            — Returns a pre-filled sample PaymentEvent (for demos)
+POST /api/simulate-notification — Dispatches async notification via Celery
+
+Environment Variables (set in .env or Docker):
+  SECRET_KEY                   — JWT signing secret
+  ACCESS_TOKEN_EXPIRE_MINUTES  — Token lifetime (default: 60)
+  CORS_ORIGINS                 — Comma-separated allowed origins
+  REDIS_URL                    — Celery broker URL
+  DATABASE_URL                 — SQLAlchemy DB URL
 
 Run with:
     uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -19,10 +27,18 @@ Run with:
 import logging
 import sys
 import os
+import asyncio
+import random
+import csv
+import io
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, status
+# Load .env file first so env vars are available before other imports
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
+
+from fastapi import FastAPI, HTTPException, status, Depends, WebSocket, WebSocketDisconnect, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -35,6 +51,8 @@ from models import PaymentEvent, RecoveryDecision, AuditRecord
 from guardrails import check_guardrails, summarize_guardrails
 from database import init_db, insert_record, get_all_records, get_stats, update_operator_decision
 from policy import get_best_action, is_model_loaded
+from auth import create_access_token, verify_password, get_password_hash, verify_token
+from tasks import send_notification as send_notification_task
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -61,16 +79,19 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# CORS — allow the React / Next.js frontend running on localhost during dev
+# CORS — reads from CORS_ORIGINS env var (comma-separated list of origins)
+# Falls back to localhost origins for local development.
 # ---------------------------------------------------------------------------
+_raw_origins = os.environ.get("CORS_ORIGINS", "")
+ALLOW_ORIGINS: List[str] = (
+    [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    if _raw_origins
+    else ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",   # Next.js dev server
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:8080",
-        "*",                       # Widen for demo; restrict in production
-    ],
+    allow_origins=ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,6 +109,59 @@ async def startup_event():
     model_status = "LOADED ✓" if is_model_loaded() else "NOT FOUND — using heuristic fallback"
     logger.info("CatBoost model status: %s", model_status)
     logger.info("RecoverAI API ready.")
+    asyncio.create_task(generate_live_events())
+
+
+# ---------------------------------------------------------------------------
+# WebSocket Manager
+# ---------------------------------------------------------------------------
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
+
+async def generate_live_events():
+    while True:
+        await asyncio.sleep(random.randint(5, 15))
+        if manager.active_connections:
+            try:
+                event_id = "TXN-LIVE-" + datetime.utcnow().strftime("%H%M%S")
+                event = PaymentEvent(
+                    transaction_id=event_id, amount=random.randint(100, 10000), 
+                    payment_method=random.choice(["upi", "card", "netbanking"]), 
+                    bank=random.choice(["SBI", "HDFC", "ICICI"]),
+                    error_reason=random.choice(["insufficient_funds", "network_timeout", "wrong_pin"]), 
+                    customer_id="CUST-LIVE", customer_segment="regular",
+                    opt_out_notification=False, device_type="mobile", channel="app",
+                    region="South", customer_age=30, account_balance=100.0, customer_tenure_months=12,
+                    previous_failed_attempts=0, retry_count=0, risk_score=random.randint(10, 80),
+                    merchant_category="ecommerce", card_type="NA", hour_of_day=12,
+                    day_of_week=1, is_weekend=0, time_since_last_failure_hr=1.0,
+                    transaction_frequency_30d=5, recovery_attempt_count=0, notification_sent=0
+                )
+                decision = await process_payment(event)
+                import json
+                payload = {**event.model_dump(), **decision.model_dump()}
+                payload["status"] = "pending"
+                payload["timestamp"] = payload["timestamp"].isoformat()
+                await manager.broadcast(json.dumps(payload))
+            except Exception as e:
+                logger.error(f"Error generating live event: {e}")
 
 
 # ===========================================================================
@@ -109,6 +183,51 @@ class ApproveActionRequest(BaseModel):
             }
         }
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# ===========================================================================
+# Auth endpoints
+# ===========================================================================
+
+@app.post("/api/login", tags=["Auth"])
+async def login(req: LoginRequest):
+    """
+    Validates credentials against the database and returns a signed JWT.
+    Uses bcrypt to verify the stored password hash.
+    """
+    from database import SessionLocal, User
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == req.username).first()
+    finally:
+        db.close()
+
+    if not user or not verify_password(req.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_access_token(data={"sub": user.username})
+    logger.info("Issued JWT for user: %s", user.username)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# ===========================================================================
+# WebSocket endpoint
+# ===========================================================================
+
+@app.websocket("/api/ws/live-events")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 # ===========================================================================
 # Core endpoints
@@ -229,6 +348,75 @@ async def process_payment(event: PaymentEvent) -> RecoveryDecision:
         )
 
 
+@app.post(
+    "/api/upload-csv",
+    summary="Upload a CSV for batch processing",
+    tags=["Batch"],
+)
+async def upload_csv(file: UploadFile = File(...), token: dict = Depends(verify_token)) -> Dict[str, Any]:
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+    
+    results = []
+    processed_count = 0
+    errors = 0
+
+    for row in reader:
+        try:
+            # Map CSV row to PaymentEvent
+            # We assume CSV columns match PaymentEvent fields approximately
+            event_id = row.get('transaction_id') or "TXN-BATCH-" + datetime.utcnow().strftime("%H%M%S%f")
+            
+            event = PaymentEvent(
+                transaction_id=event_id,
+                amount=float(row.get('amount', 0)),
+                payment_method=row.get('payment_method', 'upi').lower(),
+                bank=row.get('bank', 'SBI'),
+                error_reason=row.get('error_reason', 'insufficient_funds'),
+                customer_id=row.get('customer_id', 'CUST-BATCH'),
+                customer_segment=row.get('customer_segment', 'regular'),
+                opt_out_notification=row.get('opt_out_notification', 'false').lower() == 'true',
+                device_type=row.get('device_type', 'mobile'),
+                channel=row.get('channel', 'app'),
+                region=row.get('region', 'South'),
+                customer_age=int(row.get('customer_age', 30)),
+                account_balance=float(row.get('account_balance', 0)),
+                customer_tenure_months=int(row.get('customer_tenure_months', 12)),
+                previous_failed_attempts=int(row.get('previous_failed_attempts', 0)),
+                retry_count=int(row.get('retry_count', 0)),
+                risk_score=float(row.get('risk_score', 50.0)),
+                merchant_category=row.get('merchant_category', 'ecommerce'),
+                card_type=row.get('card_type', 'NA'),
+                hour_of_day=int(row.get('hour_of_day', 12)),
+                day_of_week=int(row.get('day_of_week', 1)),
+                is_weekend=int(row.get('is_weekend', 0)),
+                time_since_last_failure_hr=float(row.get('time_since_last_failure_hr', 1.0)),
+                transaction_frequency_30d=int(row.get('transaction_frequency_30d', 1)),
+                recovery_attempt_count=int(row.get('recovery_attempt_count', 0)),
+                notification_sent=int(row.get('notification_sent', 0))
+            )
+            decision = await process_payment(event)
+            results.append({
+                "transaction_id": event.transaction_id,
+                "recommended_action": decision.recommended_action,
+                "status": "success"
+            })
+            processed_count += 1
+        except Exception as e:
+            logger.error(f"Error processing CSV row {row}: {e}")
+            errors += 1
+
+    return {
+        "status": "success",
+        "processed": processed_count,
+        "errors": errors,
+        "message": f"Successfully processed {processed_count} records with {errors} errors."
+    }
+
 # ---------------------------------------------------------------------------
 
 @app.get(
@@ -236,7 +424,7 @@ async def process_payment(event: PaymentEvent) -> RecoveryDecision:
     summary="Aggregate analytics for the operator dashboard",
     tags=["Analytics"],
 )
-async def dashboard_stats() -> Dict[str, Any]:
+async def dashboard_stats(token: dict = Depends(verify_token)) -> Dict[str, Any]:
     """
     Returns aggregate statistics for the operator dashboard:
     - Total events processed
@@ -278,7 +466,7 @@ async def dashboard_stats() -> Dict[str, Any]:
     summary="Retrieve the 50 most recent recovery events",
     tags=["Analytics"],
 )
-async def recent_events() -> Dict[str, Any]:
+async def recent_events(token: dict = Depends(verify_token)) -> Dict[str, Any]:
     """
     Returns the last 50 recovery decisions stored in the audit database,
     ordered by timestamp descending (newest first).
@@ -297,6 +485,68 @@ async def recent_events() -> Dict[str, Any]:
             detail=f"Failed to retrieve events: {str(exc)}",
         )
 
+
+@app.get(
+    "/api/analytics-data",
+    summary="Retrieve time-series analytics data for charts",
+    tags=["Analytics"],
+)
+async def analytics_data(token: dict = Depends(verify_token)) -> Dict[str, Any]:
+    try:
+        from database import SessionLocal, RecoveryEvent
+        db = SessionLocal()
+        events = db.query(RecoveryEvent).order_by(RecoveryEvent.timestamp.desc()).limit(1000).all()
+        db.close()
+
+        # Group by day string YYYY-MM-DD
+        from collections import defaultdict
+        grouped = defaultdict(lambda: {"recovered": 0, "total": 0, "rev_recovered": 0, "rev_lost": 0})
+        
+        for e in events:
+            day = e.timestamp[:10]
+            grouped[day]["total"] += 1
+            if e.operator_decision == 'approved' or (not e.guardrail_triggered and e.recommended_action != 'human_review'):
+                # Simplified assumption of recovery for charting
+                grouped[day]["recovered"] += 1
+                grouped[day]["rev_recovered"] += e.amount
+            else:
+                grouped[day]["rev_lost"] += e.amount
+
+        # Sort dates
+        sorted_dates = sorted(list(grouped.keys()))[-8:] # last 8 days with data
+        if not sorted_dates:
+            # Fallback if DB empty
+            sorted_dates = [(datetime.utcnow() - pd.Timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7, -1, -1)]
+            for d in sorted_dates: grouped[d] = {"recovered":0, "total":1, "rev_recovered":0, "rev_lost":0}
+            
+        dates_ms = [int(datetime.strptime(d, "%Y-%m-%d").timestamp() * 1000) for d in sorted_dates]
+        
+        recovery_success_rate = []
+        revenue_recovered = []
+        revenue_lost = []
+        
+        for d in sorted_dates:
+            g = grouped[d]
+            rate = int((g["recovered"] / g["total"]) * 100) if g["total"] > 0 else 0
+            recovery_success_rate.append(rate)
+            revenue_recovered.append(g["rev_recovered"])
+            revenue_lost.append(g["rev_lost"])
+
+        return {
+            "status": "success",
+            "data": {
+                "dates": dates_ms,
+                "recovery_success_rate": recovery_success_rate,
+                "revenue_recovered": revenue_recovered,
+                "revenue_lost": revenue_lost
+            }
+        }
+    except Exception as exc:
+        logger.exception("Failed to fetch analytics data: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve analytics data: {str(exc)}",
+        )
 
 # ---------------------------------------------------------------------------
 
@@ -330,7 +580,7 @@ async def health_check() -> Dict[str, Any]:
     summary="Operator approves or rejects a recommended recovery action",
     tags=["Operator"],
 )
-async def approve_action(request: ApproveActionRequest) -> Dict[str, Any]:
+async def approve_action(request: ApproveActionRequest, token: dict = Depends(verify_token)) -> Dict[str, Any]:
     """
     Allows a human operator to record their decision on a ``human_review``
     case.  The ``decision`` field must be either ``'approved'`` or ``'rejected'``.
@@ -376,6 +626,44 @@ async def approve_action(request: ApproveActionRequest) -> Dict[str, Any]:
             detail=f"Failed to record decision: {str(exc)}",
         )
 
+# ---------------------------------------------------------------------------
+
+class SimulateNotificationRequest(BaseModel):
+    transaction_id: str
+    customer_id: str
+    action: str
+
+@app.post(
+    "/api/simulate-notification",
+    summary="Dispatches an async email/SMS notification via Celery",
+    tags=["Action"],
+)
+async def simulate_notification(
+    request: SimulateNotificationRequest,
+    token: dict = Depends(verify_token),
+) -> Dict[str, Any]:
+    """
+    Enqueues a notification task in the Celery worker (backed by Redis).
+    Returns immediately — the worker processes delivery asynchronously.
+    In production, replace the Celery task body with Twilio / SendGrid SDK calls.
+    """
+    task = send_notification_task.delay(
+        transaction_id=request.transaction_id,
+        customer_id=request.customer_id,
+        action=request.action,
+    )
+    logger.info(
+        "Notification task enqueued | task_id=%s | txn=%s",
+        task.id,
+        request.transaction_id,
+    )
+    return {
+        "status": "queued",
+        "task_id": task.id,
+        "message": f"Notification for {request.customer_id} queued for delivery.",
+        "transaction_id": request.transaction_id,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
 
 # ---------------------------------------------------------------------------
 

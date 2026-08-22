@@ -1,365 +1,504 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RecoverAI — Payment Recovery Dashboard</title>
-  <meta name="description" content="AI-powered payment failure recovery operator dashboard. Real-time event processing, risk scoring, and intelligent recovery action recommendations." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RecoverAI Command Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;family=Manrope:wght@520;700&amp;display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css" />
+<script id="tailwind-config">
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            "colors": {
+                "surface-bright": "#3a393a",
+                "on-secondary-fixed": "#001f23",
+                "on-surface-variant": "#c6c5d8",
+                "on-primary-fixed": "#000469",
+                "primary-fixed-dim": "#bec2ff",
+                "on-secondary-fixed-variant": "#004f57",
+                "on-error-container": "#ffdad6",
+                "on-tertiary": "#512300",
+                "outline-variant": "#454655",
+                "surface-variant": "#353436",
+                "on-tertiary-fixed-variant": "#743500",
+                "on-primary-fixed-variant": "#1f2bc8",
+                "primary-container": "#7a85ff",
+                "on-surface": "#e5e2e3",
+                "tertiary-fixed-dim": "#ffb689",
+                "background": "#131314",
+                "on-tertiary-container": "#471e00",
+                "surface-container": "#201f21",
+                "inverse-on-surface": "#313031",
+                "tertiary-fixed": "#ffdbc8",
+                "on-background": "#e5e2e3",
+                "tertiary": "#ffb689",
+                "surface": "#131314",
+                "error-container": "#93000a",
+                "on-secondary-container": "#003e44",
+                "surface-tint": "#bec2ff",
+                "on-error": "#690005",
+                "surface-container-highest": "#353436",
+                "surface-dim": "#131314",
+                "primary-fixed": "#e0e0ff",
+                "error": "#ffb4ab",
+                "surface-container-lowest": "#0e0e0f",
+                "surface-container-high": "#2a2a2b",
+                "inverse-primary": "#3d4ae0",
+                "secondary-fixed": "#92f1ff",
+                "on-primary-container": "#000992",
+                "secondary-fixed-dim": "#50d8e9",
+                "on-secondary": "#00363c",
+                "surface-container-low": "#1c1b1d",
+                "outline": "#8f8fa1",
+                "secondary": "#50d8e9",
+                "primary": "#bec2ff",
+                "on-tertiary-fixed": "#311300",
+                "secondary-container": "#00b1c2",
+                "tertiary-container": "#e0731d",
+                "inverse-surface": "#e5e2e3",
+                "on-primary": "#000ba6"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+            },
+            "spacing": {
+                "xs": "4px",
+                "sm": "8px",
+                "md": "16px",
+                "lg": "24px",
+                "xl": "40px",
+                "margin-safe": "32px",
+                "gutter": "20px",
+                "base": "4px"
+            },
+            "fontFamily": {
+                "label-sm": ["Inter"],
+                "mono-data": ["Inter"],
+                "body-md": ["Inter"],
+                "body-lg": ["Inter"],
+                "h2": ["Manrope"],
+                "h1": ["Manrope"],
+                "h4": ["Manrope"],
+                "h3": ["Manrope"]
+            },
+            "fontSize": {
+                "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                "mono-data": ["13px", { "lineHeight": "1", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+                "body-md": ["14px", { "lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400" }],
+                "body-lg": ["16px", { "lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400" }],
+                "h2": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.05em", "fontWeight": "520" }],
+                "h1": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.05em", "fontWeight": "520" }],
+                "h4": ["18px", { "lineHeight": "1.4", "letterSpacing": "-0.02em", "fontWeight": "520" }],
+                "h3": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.04em", "fontWeight": "520" }]
+            }
+        }
+    }
+}
+</script>
+<style>
+  body { background-color: #131314; color: #e5e2e3; font-family: 'Inter', sans-serif; }
+  .glass-panel { background: rgba(20, 21, 23, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid #1B1C1E; }
+  .card-inner-glow { box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1); }
+  .grid-bg { background-image: linear-gradient(to right, #1B1C1E 1px, transparent 1px), linear-gradient(to bottom, #1B1C1E 1px, transparent 1px); background-size: 40px 40px; }
+  /* Form Element Resets for Dark Theme */
+  input, select, textarea {
+      background-color: #1c1b1d !important;
+      border: 1px solid #454655 !important;
+      color: #e5e2e3 !important;
+      border-radius: 4px;
+  }
+  input:focus, select:focus {
+      outline: none;
+      border-color: #bec2ff !important;
+      box-shadow: 0 0 0 1px #bec2ff !important;
+  }
+</style>
 </head>
-<body>
-
-<!-- ═══════════════════════════════════════════
-     NAVBAR
-═══════════════════════════════════════════ -->
-<nav class="navbar">
-  <div class="nav-logo">
-    <div class="bolt-icon">⚡</div>
-    <span class="brand-name">RecoverAI</span>
-  </div>
-  <div class="nav-right">
-    <div class="demo-banner" id="demoBanner">
-      ⚠️ Backend offline — Demo Mode
+<body class="bg-background text-on-background min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-full fixed left-0 top-0 z-40 w-64 pt-md pb-lg bg-surface-container-lowest dark:bg-surface-container-lowest border-r border-outline-variant dark:border-outline-variant">
+    <div class="px-md mb-lg flex items-center gap-sm mt-4">
+        <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+        <div>
+            <h1 class="font-h4 text-h4 text-on-surface tracking-wide">RecoverAI</h1>
+            <p class="font-mono-data text-mono-data text-on-surface-variant">v2.4.0-stable</p>
+        </div>
     </div>
-    <div class="status-pill">
-      <span class="status-dot"></span>
-      System Active
+    <div class="flex-1 flex flex-col gap-xs px-sm mt-8">
+        <a class="group flex items-center gap-sm px-md py-xs text-secondary dark:text-secondary bg-surface-container-low border-r-2 border-secondary font-label-sm text-label-sm uppercase tracking-widest" href="#">
+            <span class="material-symbols-outlined">terminal</span> Command
+        </a>
+        <a class="group flex items-center gap-sm px-md py-xs text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container-high transition-all font-label-sm text-label-sm uppercase tracking-widest" href="analytics.html">
+            <span class="material-symbols-outlined">monitoring</span> Analytics
+        </a>
+        <a class="group flex items-center gap-sm px-md py-xs text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container-high transition-all font-label-sm text-label-sm uppercase tracking-widest" href="#">
+            <span class="material-symbols-outlined">shield</span> Risk Rules
+        </a>
+        <a class="group flex items-center gap-sm px-md py-xs text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container-high transition-all font-label-sm text-label-sm uppercase tracking-widest cursor-pointer" onclick="openUploadModal()">
+            <span class="material-symbols-outlined">upload_file</span> Batch Upload
+        </a>
+        <a class="group flex items-center gap-sm px-md py-xs text-error hover:text-red-400 hover:bg-surface-container-high transition-all font-label-sm text-label-sm uppercase tracking-widest cursor-pointer mt-4" onclick="logout()">
+            <span class="material-symbols-outlined">logout</span> Logout
+        </a>
     </div>
-    <div class="nav-time" id="navTime">00:00:00</div>
-  </div>
+    <div class="px-md mt-auto flex flex-col gap-sm">
+        <div class="mt-md border-t border-outline-variant pt-md flex items-center gap-sm">
+            <div class="w-8 h-8 rounded-full border border-outline-variant bg-surface-bright flex items-center justify-center text-xs">AI</div>
+            <div class="font-mono-data text-mono-data text-on-surface flex flex-col">
+                System Admin
+                <span id="navTime" class="text-[10px] text-on-surface-variant">00:00:00</span>
+            </div>
+        </div>
+    </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════
-     DASHBOARD WRAPPER
-═══════════════════════════════════════════ -->
-<main class="dashboard">
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col h-screen overflow-y-auto overflow-x-hidden bg-background">
+    <!-- TopNavBar (Mobile mainly) -->
+    <header class="flex justify-between items-center h-12 px-md w-full sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-outline-variant dark:border-outline-variant md:hidden">
+        <div class="font-h3 text-h3 font-bold tracking-tighter text-on-background dark:text-on-background">RecoverAI</div>
+        <div class="flex items-center gap-md text-on-surface-variant">
+            <span class="material-symbols-outlined cursor-pointer hover:text-on-surface transition-colors">notifications</span>
+            <button class="bg-surface-container border border-outline-variant text-on-surface px-sm py-xs rounded font-label-sm text-label-sm">Workspace</button>
+        </div>
+    </header>
 
-  <!-- ══════════ ROW 1: STATS CARDS ══════════ -->
-  <div class="stats-row" id="statsRow">
+    <div class="p-gutter flex flex-col gap-gutter flex-1 pb-16">
+        
+        <!-- Demo Banner -->
+        <div id="demoBanner" class="hidden bg-error-container/20 border border-error/50 text-error px-4 py-2 rounded font-mono-data text-sm">
+            ⚠️ Backend offline — Demo Mode
+        </div>
 
-    <div class="stat-card" id="card-events">
-      <div class="stat-card-header">
-        <span class="stat-label">Total Events Processed</span>
-        <div class="stat-icon indigo">📊</div>
-      </div>
-      <div class="stat-value" id="stat-events">0</div>
-      <div class="stat-sublabel">Payment events analyzed</div>
-      <div class="stat-badge up" id="badge-events">↑ Live</div>
+        <!-- Page Header -->
+        <div class="flex flex-col gap-xs mb-sm mt-4">
+            <h1 class="font-h1 text-h1 text-on-surface">Payment Recovery Console</h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant">Intelligent decisioning & action recommendations</p>
+        </div>
+
+        <!-- Top Metrics Row -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter" id="statsRow">
+            <!-- Metric 1 -->
+            <div class="bg-[#101112] border border-[#1B1C1E] rounded p-md card-inner-glow relative overflow-hidden flex flex-col">
+                <div class="absolute top-md right-md text-primary"><span class="material-symbols-outlined">data_usage</span></div>
+                <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-sm">Events Processed</div>
+                <div class="font-h2 text-h2 text-on-surface" id="stat-events">0</div>
+                <div class="font-mono-data text-mono-data text-secondary mt-xs" id="badge-events">↑ Live</div>
+            </div>
+            <!-- Metric 2 -->
+            <div class="bg-[#101112] border border-[#1B1C1E] rounded p-md card-inner-glow relative overflow-hidden flex flex-col">
+                <div class="absolute top-md right-md text-[#50d8e9]"><span class="material-symbols-outlined">trending_up</span></div>
+                <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-sm">Recovery Rate</div>
+                <div class="font-h2 text-h2 text-[#50d8e9]" id="stat-rate">0%</div>
+                <div class="font-mono-data text-mono-data text-secondary mt-xs" id="badge-rate">↑ +2.4% this week</div>
+            </div>
+            <!-- Metric 3 -->
+            <div class="bg-[#101112] border border-[#1B1C1E] rounded p-md card-inner-glow relative overflow-hidden flex flex-col">
+                <div class="absolute top-md right-md text-[#e0731d]"><span class="material-symbols-outlined">shield_error</span></div>
+                <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-sm">Avg Risk Score</div>
+                <div class="font-h2 text-h2 text-on-surface" id="stat-risk">0</div>
+                <div class="font-mono-data text-mono-data text-[#e0731d] mt-xs" id="badge-risk">⚡ Moderate risk</div>
+            </div>
+            <!-- Metric 4 -->
+            <div class="bg-[#101112] border border-[#1B1C1E] rounded p-md card-inner-glow relative overflow-hidden flex flex-col">
+                <div class="absolute top-md right-md text-error"><span class="material-symbols-outlined">pending_actions</span></div>
+                <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-sm">Pending Reviews</div>
+                <div class="font-h2 text-h2 text-on-surface" id="stat-pending">0</div>
+                <div class="font-mono-data text-mono-data text-error mt-xs" id="badge-pending">⚠ Needs attention</div>
+            </div>
+        </div>
+
+        <!-- Central Grid Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter flex-1 min-h-0">
+            
+            <!-- Process Form Area (Span 2 cols) -->
+            <div class="lg:col-span-2 bg-[#151617] border border-[#232426] rounded flex flex-col overflow-hidden relative">
+                <div class="p-sm px-md border-b border-[#1B1C1E] flex justify-between items-center bg-[#101112]">
+                    <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest flex items-center gap-sm">
+                        <span class="material-symbols-outlined text-[16px]">settings</span> Event Processor
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] text-secondary font-mono-data">
+                        <div class="w-[6px] h-[6px] rounded-full bg-secondary"></div> Engine Ready
+                    </div>
+                </div>
+                <div class="flex-1 grid-bg p-md relative overflow-y-auto flex flex-col lg:flex-row gap-8">
+                    
+                    <!-- Left: Form -->
+                    <div class="flex-1">
+                        <div id="demoBannerForm" class="hidden mb-4 p-2 bg-error-container/20 text-error text-xs border border-error/20 rounded">🔌 Backend offline — simulated data</div>
+                        
+                        <form id="paymentForm" autocomplete="off" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Transaction ID -->
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Transaction ID</label>
+                                    <div class="flex justify-between items-center p-2 bg-[#1c1b1d] border border-[#454655] rounded cursor-pointer hover:border-primary transition-colors" id="txnIdDisplay" onclick="regenerateTxnId()">
+                                        <span id="txnIdText" class="font-mono-data text-on-surface">TXN-loading...</span>
+                                        <button type="button" class="text-xs text-primary bg-primary/10 px-2 py-1 rounded">↻ New</button>
+                                    </div>
+                                </div>
+                                <!-- Amount -->
+                                <div>
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1" for="amount">Amount (₹)</label>
+                                    <input class="w-full p-2" type="number" id="amount" placeholder="e.g. 4999" min="1" max="999999" required />
+                                </div>
+                                <!-- Payment Method -->
+                                <div>
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1" for="paymentMethod">Payment Method</label>
+                                    <select class="w-full p-2" id="paymentMethod" required>
+                                        <option value="">Select method</option>
+                                        <option value="upi">UPI</option>
+                                        <option value="card">Card</option>
+                                        <option value="netbanking">NetBanking</option>
+                                    </select>
+                                </div>
+                                <!-- Bank -->
+                                <div>
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1" for="bank">Bank</label>
+                                    <select class="w-full p-2" id="bank" required>
+                                        <option value="">Select bank</option>
+                                        <option value="SBI">SBI</option>
+                                        <option value="HDFC">HDFC</option>
+                                        <option value="ICICI">ICICI</option>
+                                        <option value="Axis">Axis</option>
+                                        <option value="Kotak">Kotak</option>
+                                    </select>
+                                </div>
+                                <!-- Error Reason -->
+                                <div>
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1" for="errorReason">Error Reason</label>
+                                    <select class="w-full p-2" id="errorReason" required>
+                                        <option value="">Select error</option>
+                                        <option value="insufficient_funds">Insufficient Funds</option>
+                                        <option value="bank_server_down">Bank Server Down</option>
+                                        <option value="network_timeout">Network Timeout</option>
+                                        <option value="wrong_pin">Wrong PIN</option>
+                                        <option value="card_expired">Card Expired</option>
+                                        <option value="daily_limit_exceeded">Daily Limit Exceeded</option>
+                                        <option value="upi_not_linked">UPI Not Linked</option>
+                                        <option value="fraud_suspected">Fraud Suspected</option>
+                                    </select>
+                                </div>
+                                <!-- Customer Segment -->
+                                <div>
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1" for="customerSegment">Segment</label>
+                                    <select class="w-full p-2" id="customerSegment" required>
+                                        <option value="">Select segment</option>
+                                        <option value="premium">Premium</option>
+                                        <option value="regular">Regular</option>
+                                        <option value="new">New</option>
+                                    </select>
+                                </div>
+                                <!-- Previous Failed Attempts -->
+                                <div>
+                                    <label class="block font-label-sm text-on-surface-variant uppercase tracking-wider mb-1" for="prevFailed">Failed Attempts</label>
+                                    <input class="w-full p-2" type="number" id="prevFailed" min="0" max="5" value="0" required />
+                                </div>
+                                <!-- Risk Score (Full width) -->
+                                <div class="col-span-1 md:col-span-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="font-label-sm text-on-surface-variant uppercase tracking-wider">Risk Score</label>
+                                        <div class="font-mono-data text-error bg-error-container/20 px-2 rounded" id="riskBadge">42</div>
+                                    </div>
+                                    <input type="range" class="w-full accent-error" id="riskScore" min="0" max="100" value="42" oninput="updateRiskBadge(this.value)" />
+                                </div>
+                            </div>
+                            <button class="w-full mt-4 bg-[#5E6BFF] hover:bg-[#4d5add] text-white py-3 rounded font-body-md font-bold flex justify-center items-center gap-2 transition-colors" type="submit" id="analyzeBtn">
+                                <span class="material-symbols-outlined text-[18px]">model_training</span>
+                                <span id="analyzeBtnContent">Analyze & Get Action</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Right: Results Panel -->
+                    <div class="w-full lg:w-72 bg-[#101112] border border-[#232426] rounded p-4 flex flex-col hidden" id="resultPanel">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <div class="font-label-sm text-outline-variant uppercase tracking-widest mb-1">Recommendation</div>
+                                <div class="font-h4 text-primary" id="resultActionBadge">—</div>
+                            </div>
+                            <div id="guardrailBadge" class="flex items-center gap-1 text-[10px] uppercase font-mono-data bg-secondary/10 text-secondary px-2 py-1 rounded border border-secondary/20">
+                                <span class="material-symbols-outlined text-[12px]" id="guardrailIcon">check</span>
+                                <span id="guardrailText">Passed</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-[#1B1C1E] my-4"></div>
+
+                        <!-- Probability Circle -->
+                        <div class="flex items-center gap-4">
+                            <div class="relative w-16 h-16 flex-shrink-0">
+                                <svg viewBox="0 0 72 72" class="w-full h-full -rotate-90">
+                                    <circle cx="36" cy="36" r="30" fill="none" stroke="#232426" stroke-width="6" />
+                                    <circle id="progCircle" cx="36" cy="36" r="30" fill="none" stroke="#50d8e9" stroke-width="6" stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round" class="transition-all duration-1000 ease-out" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center font-h4 text-on-surface" id="circleText">0%</div>
+                            </div>
+                            <div>
+                                <div class="font-label-sm text-outline-variant uppercase tracking-widest">Recovery Prob.</div>
+                                <div class="font-h3 text-on-surface" id="probValue">—</div>
+                                <div class="font-mono-data text-[10px] text-[#9A9DA3] mt-1" id="probContext">Analyzing pattern…</div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-[#1B1C1E] my-4"></div>
+                        
+                        <div class="font-label-sm text-outline-variant uppercase tracking-widest mb-2">Confidence Scores</div>
+                        <div id="actionScores" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1"></div>
+
+                        <div class="mt-auto flex gap-2">
+                            <button class="flex-1 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 py-2 rounded font-label-sm flex justify-center items-center gap-1 transition-colors" id="approveBtn" onclick="submitApproval('approve')">
+                                <span class="material-symbols-outlined text-[16px]">check</span> Approve
+                            </button>
+                            <button class="flex-1 bg-error/10 hover:bg-error/20 text-error border border-error/30 py-2 rounded font-label-sm flex justify-center items-center gap-1 transition-colors" id="rejectBtn" onclick="submitApproval('reject')">
+                                <span class="material-symbols-outlined text-[16px]">close</span> Reject
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Side Area (Span 1 col) -->
+            <div class="flex flex-col gap-gutter h-[600px] lg:h-auto">
+                <!-- Recent Events Table -->
+                <div class="bg-[#101112] border border-[#232426] rounded flex flex-col flex-1 overflow-hidden">
+                    <div class="p-sm px-md border-b border-[#1B1C1E] flex justify-between items-center">
+                        <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest flex items-center gap-sm">
+                            <span class="material-symbols-outlined text-[16px]">list_alt</span> Live Events
+                        </div>
+                        <div class="flex items-center gap-1 text-[10px] font-mono-data text-secondary">
+                            <label class="flex items-center cursor-pointer mr-2">
+                              <div class="relative">
+                                <input type="checkbox" id="liveFeedToggle" class="sr-only">
+                                <div class="block bg-surface-variant w-8 h-4 rounded-full"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-2 h-2 rounded-full transition transform"></div>
+                              </div>
+                              <div class="ml-2 text-on-surface-variant">Live Feed</div>
+                            </label>
+                            <style>
+                              input:checked ~ .dot { transform: translateX(100%); background-color: #50d8e9; }
+                              input:checked ~ .block { background-color: rgba(80,216,233,0.2); }
+                            </style>
+                            <div class="w-[6px] h-[6px] rounded-full bg-secondary" id="liveDot" style="display:none;"></div>
+                            <span id="recentRefreshLabel">Offline</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto relative">
+                        <table class="w-full text-left border-collapse" id="recentTable">
+                            <thead class="sticky top-0 bg-[#151617] z-10 border-b border-[#1B1C1E]">
+                                <tr>
+                                    <th class="py-2 px-3 font-label-sm text-[10px] text-outline-variant uppercase">Time</th>
+                                    <th class="py-2 px-3 font-label-sm text-[10px] text-outline-variant uppercase">Amt</th>
+                                    <th class="py-2 px-3 font-label-sm text-[10px] text-outline-variant uppercase">Error</th>
+                                    <th class="py-2 px-3 font-label-sm text-[10px] text-outline-variant uppercase">Action</th>
+                                    <th class="py-2 px-3 font-label-sm text-[10px] text-outline-variant uppercase">Prob</th>
+                                    <th class="py-2 px-3 font-label-sm text-[10px] text-outline-variant uppercase">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTableBody">
+                                <tr><td colspan="3" class="text-center py-8 text-on-surface-variant font-mono-data text-xs">Loading events...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Donut Chart -->
+                <div class="bg-[#101112] border border-[#232426] rounded flex flex-col shrink-0 h-48 overflow-hidden">
+                    <div class="p-sm px-md border-b border-[#1B1C1E] flex justify-between items-center">
+                        <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Distribution</div>
+                    </div>
+                    <div class="flex-1 p-4 flex items-center justify-between" id="donutSection">
+                        <div class="relative w-24 h-24">
+                            <svg id="donutSvg" viewBox="0 0 90 90" class="w-full h-full -rotate-90"></svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="font-h4 text-on-surface leading-none" id="donutTotal">—</span>
+                                <span class="text-[10px] text-outline-variant font-mono-data">Events</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 ml-4 overflow-y-auto max-h-32 text-xs" id="donutLegend"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Audit Trail -->
+        <div class="bg-[#101112] border border-[#232426] rounded flex flex-col overflow-hidden mb-8">
+            <div class="p-sm px-md border-b border-[#1B1C1E] flex justify-between items-center bg-[#151617]">
+                <div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest flex items-center gap-sm">
+                    <span class="material-symbols-outlined text-[16px]">history</span> Audit Log
+                    <span class="text-[10px] text-outline-variant normal-case ml-2" id="auditCount">(0 events)</span>
+                </div>
+                <button class="bg-[#191A1C] border border-[#454655] hover:bg-[#2a2a2b] text-on-surface px-3 py-1 rounded font-label-sm text-[11px] flex items-center gap-1 transition-colors" id="exportBtn" onclick="exportCSV()">
+                    <span class="material-symbols-outlined text-[14px]">download</span> Export CSV
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse whitespace-nowrap" id="auditTable">
+                    <thead class="bg-[#101112] border-b border-[#1B1C1E]">
+                        <tr>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">#</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Time</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">TXN ID</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Amount</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Method</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Bank</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Error</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Segment</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Risk</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Action</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Prob</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Guardrail</th>
+                            <th class="py-2 px-4 font-label-sm text-[10px] text-outline-variant uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr><td colspan="8" class="text-center py-8 text-on-surface-variant font-mono-data text-xs">No events logged yet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
-
-    <div class="stat-card" id="card-rate">
-      <div class="stat-card-header">
-        <span class="stat-label">Recovery Rate</span>
-        <div class="stat-icon green">📈</div>
-      </div>
-      <div class="stat-value green" id="stat-rate">0%</div>
-      <div class="stat-sublabel">Successful recoveries</div>
-      <div class="stat-badge up" id="badge-rate">↑ +2.4% this week</div>
-    </div>
-
-    <div class="stat-card" id="card-risk">
-      <div class="stat-card-header">
-        <span class="stat-label">Avg Risk Score</span>
-        <div class="stat-icon blue">🛡️</div>
-      </div>
-      <div class="stat-value blue" id="stat-risk">0</div>
-      <div class="stat-sublabel">Out of 100 max risk</div>
-      <div class="stat-badge warn" id="badge-risk">⚡ Moderate risk</div>
-    </div>
-
-    <div class="stat-card" id="card-pending">
-      <div class="stat-card-header">
-        <span class="stat-label">Pending Reviews</span>
-        <div class="stat-icon orange">⏱️</div>
-      </div>
-      <div class="stat-value orange" id="stat-pending">0</div>
-      <div class="stat-sublabel">Awaiting operator action</div>
-      <div class="stat-badge warn" id="badge-pending">⚠ Needs attention</div>
-    </div>
-
-  </div>
-
-  <!-- ══════════ ROW 2: MAIN CONTENT ══════════ -->
-  <div class="content-row">
-
-    <!-- LEFT: PROCESS FORM -->
-    <div class="glass-card" style="animation-delay:0.15s;">
-      <div class="card-header">
-        <div class="card-title">
-          <div class="card-title-icon">⚙️</div>
-          Process Payment Event
-        </div>
-        <div class="refresh-indicator">
-          <span class="refresh-dot"></span>
-          AI Engine Ready
-        </div>
-      </div>
-
-      <div class="card-body">
-
-        <!-- Demo Banner (inline, inside form) -->
-        <div class="demo-banner" id="demoBannerForm" style="margin-bottom:14px;">
-          🔌 Backend offline — showing demo mode with simulated data
-        </div>
-
-        <form id="paymentForm" autocomplete="off">
-          <div class="form-grid">
-
-            <!-- Transaction ID -->
-            <div class="form-group full-width">
-              <label class="form-label">Transaction ID</label>
-              <div class="txn-id-display" id="txnIdDisplay" onclick="regenerateTxnId()" title="Click to regenerate">
-                <span id="txnIdText">TXN-loading...</span>
-                <button class="txn-regen-btn" type="button" onclick="event.stopPropagation(); regenerateTxnId()">↻ New</button>
-              </div>
-            </div>
-
-            <!-- Amount -->
-            <div class="form-group">
-              <label class="form-label" for="amount">Amount (₹)</label>
-              <input class="form-control" type="number" id="amount" placeholder="e.g. 4999" min="1" max="999999" required />
-            </div>
-
-            <!-- Payment Method -->
-            <div class="form-group">
-              <label class="form-label" for="paymentMethod">Payment Method</label>
-              <select class="form-control" id="paymentMethod" required>
-                <option value="">Select method</option>
-                <option value="upi">UPI</option>
-                <option value="card">Card</option>
-                <option value="netbanking">NetBanking</option>
-              </select>
-            </div>
-
-            <!-- Bank -->
-            <div class="form-group">
-              <label class="form-label" for="bank">Bank</label>
-              <select class="form-control" id="bank" required>
-                <option value="">Select bank</option>
-                <option value="SBI">SBI</option>
-                <option value="HDFC">HDFC</option>
-                <option value="ICICI">ICICI</option>
-                <option value="Axis">Axis</option>
-                <option value="Kotak">Kotak</option>
-              </select>
-            </div>
-
-            <!-- Error Reason -->
-            <div class="form-group">
-              <label class="form-label" for="errorReason">Error Reason</label>
-              <select class="form-control" id="errorReason" required>
-                <option value="">Select error</option>
-                <option value="insufficient_funds">Insufficient Funds</option>
-                <option value="bank_server_down">Bank Server Down</option>
-                <option value="network_timeout">Network Timeout</option>
-                <option value="wrong_pin">Wrong PIN</option>
-                <option value="card_expired">Card Expired</option>
-                <option value="daily_limit_exceeded">Daily Limit Exceeded</option>
-                <option value="upi_not_linked">UPI Not Linked</option>
-                <option value="fraud_suspected">Fraud Suspected</option>
-              </select>
-            </div>
-
-            <!-- Customer Segment -->
-            <div class="form-group">
-              <label class="form-label" for="customerSegment">Customer Segment</label>
-              <select class="form-control" id="customerSegment" required>
-                <option value="">Select segment</option>
-                <option value="premium">Premium</option>
-                <option value="regular">Regular</option>
-                <option value="new">New</option>
-              </select>
-            </div>
-
-            <!-- Risk Score -->
-            <div class="form-group full-width">
-              <label class="form-label">Risk Score</label>
-              <div class="slider-row">
-                <input type="range" class="risk-slider" id="riskScore" min="0" max="100" value="42"
-                       oninput="updateRiskBadge(this.value)" />
-                <div class="risk-value-badge" id="riskBadge">42</div>
-              </div>
-            </div>
-
-            <!-- Previous Failed Attempts -->
-            <div class="form-group">
-              <label class="form-label" for="prevFailed">Previous Failed Attempts</label>
-              <input class="form-control" type="number" id="prevFailed" min="0" max="5" value="0" required />
-            </div>
-
-          </div><!-- /form-grid -->
-
-          <button class="btn-analyze" type="submit" id="analyzeBtn">
-            <span id="analyzeBtnContent">⚡ Analyze &amp; Get Recovery Action</span>
-          </button>
-        </form>
-
-        <!-- RESULT PANEL -->
-        <div class="result-panel" id="resultPanel">
-
-          <div class="result-header">
-            <div>
-              <div class="text-muted text-sm" style="margin-bottom:6px;">Recommended Action</div>
-              <div class="result-action-badge" id="resultActionBadge">—</div>
-            </div>
-            <div id="guardrailBadge" class="guardrail-badge pass">
-              <span id="guardrailIcon">✓</span>
-              <span id="guardrailText">Guardrails Passed</span>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="prob-section">
-            <div class="circular-progress">
-              <svg viewBox="0 0 72 72">
-                <circle class="bg-circle" cx="36" cy="36" r="30" />
-                <circle class="prog-circle" id="progCircle" cx="36" cy="36" r="30"
-                        stroke-dasharray="188.5" stroke-dashoffset="188.5" />
-              </svg>
-              <div class="prob-text" id="circleText">0%</div>
-            </div>
-            <div class="prob-info">
-              <div class="prob-label">Recovery Probability</div>
-              <div class="prob-value" id="probValue">—</div>
-              <div class="text-muted text-sm mt-8" id="probContext">Analyzing payment pattern…</div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div>
-            <div class="scores-title">Action Confidence Scores</div>
-            <div id="actionScores"></div>
-          </div>
-
-          <div class="action-buttons">
-            <button class="btn-approve" id="approveBtn" onclick="submitApproval('approve')">
-              ✓ Approve Action
-            </button>
-            <button class="btn-reject" id="rejectBtn" onclick="submitApproval('reject')">
-              ✗ Reject
-            </button>
-          </div>
-
-        </div><!-- /result-panel -->
-
-      </div><!-- /card-body -->
-    </div><!-- /glass-card left -->
-
-    <!-- RIGHT COLUMN -->
-    <div class="right-col">
-
-      <!-- RECENT EVENTS TABLE -->
-      <div class="glass-card" style="animation-delay:0.25s;">
-        <div class="card-header">
-          <div class="card-title">
-            <div class="card-title-icon">🕐</div>
-            Recent Recovery Events
-          </div>
-          <div class="refresh-indicator">
-            <span class="refresh-dot"></span>
-            <span id="recentRefreshLabel">Live</span>
-          </div>
-        </div>
-
-        <div class="card-body" style="padding:0;">
-          <div class="table-wrapper">
-            <table id="recentTable">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Amount</th>
-                  <th>Error</th>
-                  <th>Action</th>
-                  <th>Prob</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="recentTableBody">
-                <tr><td colspan="6" class="empty-state"><div class="empty-icon">📡</div>Loading events…</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- DONUT CHART -->
-        <div class="divider" style="margin:0 16px;"></div>
-        <div class="card-header" style="border-bottom:none; padding-bottom:4px;">
-          <div class="card-title" style="font-size:12px;">Action Distribution</div>
-        </div>
-        <div class="donut-section" id="donutSection">
-          <div class="donut-wrap">
-            <svg id="donutSvg" width="90" height="90" viewBox="0 0 90 90">
-              <!-- Filled dynamically -->
-            </svg>
-            <div class="donut-center-text">
-              <span class="d-num" id="donutTotal">—</span>
-              <span class="d-lbl">Events</span>
-            </div>
-          </div>
-          <div class="donut-legend" id="donutLegend"></div>
-        </div>
-
-      </div><!-- /recent events card -->
-
-    </div><!-- /right-col -->
-  </div><!-- /content-row -->
-
-  <!-- ══════════ ROW 3: AUDIT TRAIL ══════════ -->
-  <div class="glass-card audit-row">
-    <div class="card-header">
-      <div class="card-title">
-        <div class="card-title-icon">📋</div>
-        Audit Trail
-        <span style="font-size:10px; color:var(--text-muted); font-weight:500; margin-left:6px;" id="auditCount">(0 events)</span>
-      </div>
-      <div class="audit-header-row" style="gap:12px;">
-        <div class="refresh-indicator">
-          <span class="refresh-dot"></span>
-          Auto-saving
-        </div>
-        <button class="btn-export" id="exportBtn" onclick="exportCSV()">
-          ⬇ Export CSV
-        </button>
-      </div>
-    </div>
-
-    <div class="card-body" style="padding:0;">
-      <div class="audit-table-wrap table-wrapper">
-        <table id="auditTable">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Timestamp</th>
-              <th>Transaction ID</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Bank</th>
-              <th>Error</th>
-              <th>Segment</th>
-              <th>Risk</th>
-              <th>Action</th>
-              <th>Probability</th>
-              <th>Guardrail</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="auditTableBody">
-            <tr><td colspan="13" class="empty-state"><div class="empty-icon">📂</div>No events logged yet</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
 </main>
 
+<!-- Upload CSV Modal -->
+<div id="uploadModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-[#151617] border border-[#232426] rounded-xl w-[90%] max-w-md p-6 relative shadow-2xl">
+        <button class="absolute top-4 right-4 text-on-surface-variant hover:text-white" onclick="closeUploadModal()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <h2 class="font-h3 text-h3 mb-2">Batch Processing</h2>
+        <p class="font-body-md text-on-surface-variant mb-6">Upload a CSV file containing multiple payment events for bulk analysis.</p>
+        
+        <div id="dropZone" class="border-2 border-dashed border-[#454655] hover:border-primary rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#101112]">
+            <span class="material-symbols-outlined text-[48px] text-outline-variant mb-4">cloud_upload</span>
+            <div class="font-label-sm uppercase tracking-widest text-on-surface mb-1">Drag & Drop CSV</div>
+            <div class="text-[12px] text-on-surface-variant">or click to browse</div>
+            <input type="file" id="csvFileInput" class="hidden" accept=".csv" />
+        </div>
+        
+        <div id="uploadProgress" class="hidden mt-6">
+            <div class="flex justify-between font-label-sm text-xs mb-1">
+                <span>Processing...</span>
+                <span id="uploadPercent">0%</span>
+            </div>
+            <div class="w-full bg-[#1B1C1E] rounded-full h-2">
+                <div class="bg-primary h-2 rounded-full transition-all duration-300" id="uploadBar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Container -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" id="toastContainer"></div>
 
 <script src="app.js"></script>
 </body>

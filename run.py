@@ -20,7 +20,9 @@ print("\n[1/3] Installing dependencies...")
 subprocess.run(
     [sys.executable, "-m", "pip", "install",
      "fastapi", "uvicorn[standard]", "catboost",
-     "pandas", "numpy", "pydantic", "scikit-learn", "-q"],
+     "pandas", "numpy", "pydantic", "scikit-learn", 
+     "python-jose", "bcrypt", "sqlalchemy", "celery",
+     "redis", "python-dotenv", "python-multipart", "-q"],
     check=True
 )
 print("  Dependencies ready!")

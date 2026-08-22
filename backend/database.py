@@ -1,318 +1,184 @@
-"""
-RecoverAI - SQLite Database Layer
-==================================
-Provides a lightweight, dependency-free persistence layer using the built-in
-sqlite3 module.  Every decision made by the recovery engine is stored here
-for audit, analytics, and operator review purposes.
-
-No ORM is used intentionally — this keeps the footprint minimal and avoids
-heavy migrations for this project phase.
-"""
-
-import sqlite3
-import json
 import os
+import json
 import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
+# Use environment variable for database URL, fallback to sqlite for local dev if not provided
+# Docker compose provides postgresql://admin:password@db/recoverai
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./recoverai_audit.db")
 
-# Resolve DB path relative to THIS file so it works regardless of cwd
-_HERE = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(_HERE, "..", "recoverai_audit.db")
-DB_PATH = os.path.normpath(DB_PATH)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
 
-# ---------------------------------------------------------------------------
-# Schema
-# ---------------------------------------------------------------------------
+class RecoveryEvent(Base):
+    __tablename__ = "recovery_events"
 
-_CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS recovery_events (
-    -- Primary key
-    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
-    transaction_id              TEXT    NOT NULL UNIQUE,
-    customer_id                 TEXT    NOT NULL,
-    timestamp                   TEXT    NOT NULL,
+    id = Column(Integer, primary_key=True, index=True)
+    transaction_id = Column(String, unique=True, index=True, nullable=False)
+    customer_id = Column(String, index=True, nullable=False)
+    timestamp = Column(String, nullable=False)
 
-    -- Transaction inputs
-    amount                      REAL    NOT NULL,
-    payment_method              TEXT    NOT NULL,
-    bank                        TEXT    NOT NULL,
-    error_reason                TEXT    NOT NULL,
-    customer_segment            TEXT    NOT NULL,
-    opt_out_notification        INTEGER NOT NULL DEFAULT 0,
-    device_type                 TEXT,
-    channel                     TEXT,
-    region                      TEXT,
-    customer_age                INTEGER,
-    account_balance             REAL,
-    customer_tenure_months      INTEGER,
-    previous_failed_attempts    INTEGER,
-    retry_count                 INTEGER,
-    risk_score                  REAL,
-    merchant_category           TEXT,
-    card_type                   TEXT,
-    hour_of_day                 INTEGER,
-    day_of_week                 INTEGER,
-    is_weekend                  INTEGER,
-    time_since_last_failure_hr  REAL,
-    transaction_frequency_30d   INTEGER,
-    recovery_attempt_count      INTEGER,
-    notification_sent           INTEGER,
+    amount = Column(Float, nullable=False)
+    payment_method = Column(String, nullable=False)
+    bank = Column(String, nullable=False)
+    error_reason = Column(String, nullable=False)
+    customer_segment = Column(String, nullable=False)
+    opt_out_notification = Column(Boolean, default=False)
+    device_type = Column(String)
+    channel = Column(String)
+    region = Column(String)
+    customer_age = Column(Integer)
+    account_balance = Column(Float)
+    customer_tenure_months = Column(Integer)
+    previous_failed_attempts = Column(Integer)
+    retry_count = Column(Integer)
+    risk_score = Column(Float)
+    merchant_category = Column(String)
+    card_type = Column(String)
+    hour_of_day = Column(Integer)
+    day_of_week = Column(Integer)
+    is_weekend = Column(Boolean)
+    time_since_last_failure_hr = Column(Float)
+    transaction_frequency_30d = Column(Integer)
+    recovery_attempt_count = Column(Integer)
+    notification_sent = Column(Boolean, default=False)
 
-    -- Recovery decision outputs
-    recommended_action          TEXT    NOT NULL,
-    recovery_probability        REAL    NOT NULL,
-    guardrail_triggered         INTEGER NOT NULL DEFAULT 0,
-    guardrail_reason            TEXT,
-    all_action_scores           TEXT    DEFAULT '{}',
+    recommended_action = Column(String, nullable=False)
+    recovery_probability = Column(Float, nullable=False)
+    guardrail_triggered = Column(Boolean, default=False)
+    guardrail_reason = Column(String)
+    all_action_scores = Column(Text, default="{}")
 
-    -- Operator review
-    operator_decision           TEXT,
-    operator_notes              TEXT,
-    reviewed_at                 TEXT
-);
-"""
+    operator_decision = Column(String)
+    operator_notes = Column(Text)
+    reviewed_at = Column(String)
 
-_CREATE_INDEX_SQL = """
-CREATE INDEX IF NOT EXISTS idx_recovery_events_timestamp
-    ON recovery_events (timestamp DESC);
-"""
+def init_db():
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database initialized with SQLAlchemy.")
+    
+    # Create default admin user if none exists
+    db = SessionLocal()
+    try:
+        from auth import get_password_hash
+        
+        if not db.query(User).filter(User.username == "admin").first():
+            hashed_pw = get_password_hash("admin")
+            admin_user = User(username="admin", hashed_password=hashed_pw)
+            db.add(admin_user)
+            db.commit()
+            logger.info("Created default admin user.")
+    except Exception as e:
+        logger.error(f"Failed to create default user: {e}")
+    finally:
+        db.close()
 
-
-# ---------------------------------------------------------------------------
-# Connection helper
-# ---------------------------------------------------------------------------
-
-def _get_connection() -> sqlite3.Connection:
-    """
-    Return a sqlite3 connection with row_factory set to dict-like access.
-    Uses check_same_thread=False so FastAPI's async workers can share it
-    safely (SQLite handles its own serialisation for writes).
-    """
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row   # allows dict-style column access
-    return conn
-
-
-# ---------------------------------------------------------------------------
-# Initialisation
-# ---------------------------------------------------------------------------
-
-def init_db() -> None:
-    """
-    Create the database file and schema if they do not already exist.
-    Safe to call on every startup — uses IF NOT EXISTS guards.
-    """
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    with _get_connection() as conn:
-        conn.execute(_CREATE_TABLE_SQL)
-        conn.execute(_CREATE_INDEX_SQL)
-        conn.commit()
-    logger.info("SQLite database initialised at: %s", DB_PATH)
-
-
-# ---------------------------------------------------------------------------
-# Write operations
-# ---------------------------------------------------------------------------
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def insert_record(record: Dict[str, Any]) -> None:
-    """
-    Persist a single recovery decision audit record.
+    db = SessionLocal()
+    try:
+        rec_copy = dict(record)
+        if isinstance(rec_copy.get("all_action_scores"), dict):
+            rec_copy["all_action_scores"] = json.dumps(rec_copy["all_action_scores"])
+            
+        for key, val in rec_copy.items():
+            if isinstance(val, datetime):
+                rec_copy[key] = val.isoformat()
 
-    Parameters
-    ----------
-    record : dict
-        Must contain all required columns.  ``all_action_scores`` should be
-        passed as a dict; it will be JSON-serialised automatically.
-    """
-    # Serialise nested dict to JSON string for storage
-    record = dict(record)  # shallow copy to avoid mutating caller's dict
-    if isinstance(record.get("all_action_scores"), dict):
-        record["all_action_scores"] = json.dumps(record["all_action_scores"])
+        db_event = RecoveryEvent(**rec_copy)
+        db.add(db_event)
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error inserting record: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
-    # Convert datetime objects to ISO strings
-    for key, val in record.items():
-        if isinstance(val, datetime):
-            record[key] = val.isoformat()
-
-    # Convert booleans to integers (SQLite has no native bool)
-    for key in ("opt_out_notification", "guardrail_triggered", "notification_sent"):
-        if key in record and isinstance(record[key], bool):
-            record[key] = int(record[key])
-
-    columns = ", ".join(record.keys())
-    placeholders = ", ".join(["?" for _ in record])
-    sql = f"INSERT OR REPLACE INTO recovery_events ({columns}) VALUES ({placeholders})"
-
-    with _get_connection() as conn:
-        conn.execute(sql, list(record.values()))
-        conn.commit()
-    logger.debug("Inserted record for transaction_id=%s", record.get("transaction_id"))
-
-
-def update_operator_decision(
-    transaction_id: str,
-    operator_decision: str,
-    operator_notes: Optional[str] = None,
-) -> bool:
-    """
-    Update the operator review fields for a specific transaction.
-
-    Returns True if a row was updated, False if the transaction_id was not found.
-    """
-    sql = """
-        UPDATE recovery_events
-        SET operator_decision = ?,
-            operator_notes    = ?,
-            reviewed_at       = ?
-        WHERE transaction_id  = ?
-    """
-    with _get_connection() as conn:
-        cur = conn.execute(
-            sql,
-            (operator_decision, operator_notes, datetime.utcnow().isoformat(), transaction_id),
-        )
-        conn.commit()
-        return cur.rowcount > 0
-
-
-# ---------------------------------------------------------------------------
-# Read operations
-# ---------------------------------------------------------------------------
+def update_operator_decision(transaction_id: str, operator_decision: str, operator_notes: Optional[str] = None) -> bool:
+    db = SessionLocal()
+    try:
+        event = db.query(RecoveryEvent).filter(RecoveryEvent.transaction_id == transaction_id).first()
+        if event:
+            event.operator_decision = operator_decision
+            event.operator_notes = operator_notes
+            event.reviewed_at = datetime.utcnow().isoformat()
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
 
 def get_all_records(limit: int = 100) -> List[Dict[str, Any]]:
-    """
-    Retrieve the most recent ``limit`` recovery events, newest first.
-    ``all_action_scores`` is deserialised from JSON back to a dict.
-    """
-    sql = """
-        SELECT * FROM recovery_events
-        ORDER BY timestamp DESC
-        LIMIT ?
-    """
-    with _get_connection() as conn:
-        rows = conn.execute(sql, (limit,)).fetchall()
-
-    results = []
-    for row in rows:
-        d = dict(row)
-        # Deserialise JSON fields
-        try:
-            d["all_action_scores"] = json.loads(d.get("all_action_scores") or "{}")
-        except (json.JSONDecodeError, TypeError):
-            d["all_action_scores"] = {}
-        results.append(d)
-    return results
-
-
-def get_record_by_id(transaction_id: str) -> Optional[Dict[str, Any]]:
-    """Fetch a single record by transaction_id, or None if not found."""
-    sql = "SELECT * FROM recovery_events WHERE transaction_id = ? LIMIT 1"
-    with _get_connection() as conn:
-        row = conn.execute(sql, (transaction_id,)).fetchone()
-    if row is None:
-        return None
-    d = dict(row)
+    db = SessionLocal()
     try:
-        d["all_action_scores"] = json.loads(d.get("all_action_scores") or "{}")
-    except (json.JSONDecodeError, TypeError):
-        d["all_action_scores"] = {}
-    return d
-
-
-# ---------------------------------------------------------------------------
-# Analytics / Stats
-# ---------------------------------------------------------------------------
+        events = db.query(RecoveryEvent).order_by(RecoveryEvent.timestamp.desc()).limit(limit).all()
+        results = []
+        for e in events:
+            d = {c.name: getattr(e, c.name) for c in e.__table__.columns}
+            try:
+                d["all_action_scores"] = json.loads(d.get("all_action_scores") or "{}")
+            except:
+                d["all_action_scores"] = {}
+            results.append(d)
+        return results
+    finally:
+        db.close()
 
 def get_stats() -> Dict[str, Any]:
-    """
-    Compute aggregate statistics over all recovery events.
-
-    Returns
-    -------
-    dict with keys:
-        total_events        : int
-        recovery_rate       : float  (fraction of non-human_review actions)
-        action_distribution : dict   {action: count}
-        error_distribution  : dict   {error_reason: count}
-        avg_recovery_prob   : float
-        guardrail_rate      : float  (fraction of events with guardrail triggered)
-        pending_review      : int    (human_review events without operator decision)
-    """
-    stats: Dict[str, Any] = {
-        "total_events": 0,
-        "recovery_rate": 0.0,
-        "action_distribution": {},
-        "error_distribution": {},
-        "avg_recovery_prob": 0.0,
-        "avg_risk_score": 0.0,
-        "guardrail_rate": 0.0,
-        "pending_review": 0,
-    }
-
-    with _get_connection() as conn:
-        # Total events
-        total = conn.execute("SELECT COUNT(*) FROM recovery_events").fetchone()[0]
-        stats["total_events"] = total
+    db = SessionLocal()
+    try:
+        from sqlalchemy import func
+        total = db.query(func.count(RecoveryEvent.id)).scalar()
         if total == 0:
-            return stats
+            return {
+                "total_events": 0, "recovery_rate": 0.0, "action_distribution": {},
+                "error_distribution": {}, "avg_recovery_prob": 0.0, "avg_risk_score": 0.0,
+                "guardrail_rate": 0.0, "pending_review": 0
+            }
 
-        # Average recovery probability
-        avg_prob = conn.execute(
-            "SELECT AVG(recovery_probability) FROM recovery_events"
-        ).fetchone()[0]
-        stats["avg_recovery_prob"] = round(avg_prob or 0.0, 4)
-
-        # Average risk score
-        avg_risk = conn.execute(
-            "SELECT AVG(risk_score) FROM recovery_events"
-        ).fetchone()[0]
-        stats["avg_risk_score"] = round(avg_risk or 0.0, 1)
-
-        # Guardrail rate
-        guardrail_count = conn.execute(
-            "SELECT COUNT(*) FROM recovery_events WHERE guardrail_triggered = 1"
-        ).fetchone()[0]
-        stats["guardrail_rate"] = round(guardrail_count / total, 4)
-
-        # Action distribution
-        rows = conn.execute(
-            "SELECT recommended_action, COUNT(*) as cnt FROM recovery_events GROUP BY recommended_action"
-        ).fetchall()
-        action_dist = {r["recommended_action"]: r["cnt"] for r in rows}
-        stats["action_distribution"] = action_dist
-
-        # Recovery rate = fraction of events NOT routed to human_review
+        avg_prob = db.query(func.avg(RecoveryEvent.recovery_probability)).scalar() or 0.0
+        avg_risk = db.query(func.avg(RecoveryEvent.risk_score)).scalar() or 0.0
+        guardrail_count = db.query(func.count(RecoveryEvent.id)).filter(RecoveryEvent.guardrail_triggered == True).scalar()
+        
+        action_counts = db.query(RecoveryEvent.recommended_action, func.count(RecoveryEvent.id)).group_by(RecoveryEvent.recommended_action).all()
+        action_dist = {a: c for a, c in action_counts}
+        
         human_review_count = action_dist.get("human_review", 0)
-        stats["recovery_rate"] = round((total - human_review_count) / total, 4)
+        recovery_rate = (total - human_review_count) / total
+        
+        error_counts = db.query(RecoveryEvent.error_reason, func.count(RecoveryEvent.id)).group_by(RecoveryEvent.error_reason).order_by(func.count(RecoveryEvent.id).desc()).limit(10).all()
+        error_dist = {e: c for e, c in error_counts}
+        
+        pending = db.query(func.count(RecoveryEvent.id)).filter(RecoveryEvent.recommended_action == 'human_review', RecoveryEvent.operator_decision == None).scalar()
 
-        # Top error reasons (top 10)
-        rows = conn.execute(
-            """
-            SELECT error_reason, COUNT(*) as cnt
-            FROM recovery_events
-            GROUP BY error_reason
-            ORDER BY cnt DESC
-            LIMIT 10
-            """
-        ).fetchall()
-        stats["error_distribution"] = {r["error_reason"]: r["cnt"] for r in rows}
-
-        # Pending human review (no operator decision yet)
-        pending = conn.execute(
-            """
-            SELECT COUNT(*) FROM recovery_events
-            WHERE recommended_action = 'human_review'
-              AND operator_decision IS NULL
-            """
-        ).fetchone()[0]
-        stats["pending_review"] = pending
-
-    return stats
+        return {
+            "total_events": total,
+            "recovery_rate": round(recovery_rate, 4),
+            "action_distribution": action_dist,
+            "error_distribution": error_dist,
+            "avg_recovery_prob": round(avg_prob, 4),
+            "avg_risk_score": round(avg_risk, 1),
+            "guardrail_rate": round(guardrail_count / total, 4),
+            "pending_review": pending,
+        }
+    finally:
+        db.close()
