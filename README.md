@@ -1,184 +1,170 @@
 <div align="center">
 
-<!-- Animated typing banner -->
-<a href="https://github.com/viRAJ357/Revenue-AI-Tracker">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=800&size=34&duration=3000&pause=1000&color=F86666&center=true&vCenter=true&width=860&lines=Revenue+AI+Tracker;AI-Powered+Revenue+Forecasting;Data+Ingestion+to+Deployment;End-to-End+Machine+Learning+Pipeline!" alt="Typing SVG" />
-</a>
+# 🚀 RecoverAI — Intelligent Payment Recovery System
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=header&text=Revenue%20AI%20Tracker&fontSize=42&fontColor=fff&animation=twinkling&fontAlignY=40" width="100%"/>
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API_Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![CatBoost](https://img.shields.io/badge/CatBoost-ML_Engine-FFCC00?style=for-the-badge&logo=yandex&logoColor=black)](https://catboost.ai)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
-  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
-</p>
+> **RecoverAI** is an end-to-end Machine Learning pipeline and interactive Operator Dashboard that predicts whether a failed financial transaction can be recovered. It uses a **CatBoost AI model** combined with a robust **FastAPI backend** and a beautiful frontend interface.
 
-<h3>An end-to-end AI-powered system to predict, track, and visualize business revenue — from raw data ingestion to live dashboard deployment.</h3>
-
-<br/>
-
-<a href="index.html">
-  <img src="https://img.shields.io/badge/Open_3D_Interactive_Flow_Graph-1f6feb?style=for-the-badge&logo=threedotjs&logoColor=white" alt="3D Graph"/>
-</a>
+---
 
 </div>
 
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+## 📌 Table of Contents
 
-## 🎬 Motion Animation — Live Data Pipeline Flow
+- [Problem Statement](#-problem-statement)
+- [System Architecture](#-system-architecture)
+- [Project Features](#-project-features)
+- [ML Pipeline Workflow](#-ml-pipeline-workflow)
+- [Project Structure](#-project-structure)
+- [Quick Start Guide](#-quick-start-guide)
+- [API Endpoints](#-api-endpoints)
 
-> Built from scratch using pure **Python + Pillow**. Visualizes the entire 10-step Revenue AI pipeline flowing in real time!
+---
 
-<div align="center">
-  <img src="assets/flow_animation.gif" alt="Revenue AI Tracker Animated Flow" width="100%"/>
-</div>
+## 🎯 Problem Statement
 
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+Every day, **millions of financial transactions fail** due to network errors, insufficient funds, or timeouts. Knowing exactly which transactions have a high probability of recovery can save businesses millions in lost revenue. 
 
-## 🌟 Full Architecture — 3D Interactive Graph
+**RecoverAI** tackles this by predicting the likelihood of a transaction being successfully recovered within 72 hours, offering actionable recommendations like `Smart Retry`, `Delayed Retry`, or `Human Review`.
 
-> Open `index.html` locally in any browser to explore the **advanced n8n-style 3D rotating graph** with particle flows connecting every step!
+---
+
+## 🏗️ System Architecture
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor':'#0d1117','primaryTextColor':'#c9d1d9','primaryBorderColor':'#3fb950','lineColor':'#58a6ff','secondaryColor':'#161b22','tertiaryColor':'#2ea043'}}}%%
-graph TD
-    classDef root   fill:#f86666,stroke:#fff,stroke-width:3px,color:#000;
-    classDef setup  fill:#1a2b42,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9;
-    classDef data   fill:#0f2a2a,stroke:#3fb9b4,stroke-width:2px,color:#c9d1d9;
-    classDef ml     fill:#2a2200,stroke:#e5c059,stroke-width:2px,color:#c9d1d9;
-    classDef api    fill:#2a0f0f,stroke:#f86666,stroke-width:2px,color:#c9d1d9;
-    classDef viz    fill:#1e1235,stroke:#bc8cff,stroke-width:2px,color:#c9d1d9;
+flowchart TD
+    classDef ui fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef api fill:#fff8e1,stroke:#ff8f00,stroke-width:2px;
+    classDef core fill:#ffebee,stroke:#c62828,stroke-width:2px;
+    classDef db fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-    ROOT(("Revenue AI Tracker")):::root --> S01
-
-    subgraph Phase1 [Setup]
-      S01(Step 01: Project Setup & Config):::setup
-    end
-
-    subgraph Phase2 [Data Engineering]
-      S02(Step 02: Data Ingestion):::data
-      S03(Step 03: Preprocessing & Cleaning):::data
-      S04(Step 04: Exploratory Data Analysis):::data
-    end
-
-    subgraph Phase3 [AI / ML]
-      S05(Step 05: Feature Engineering):::ml
-      S06(Step 06: AI Model Training):::ml
-      S07(Step 07: Model Evaluation & Tuning):::ml
-    end
-
-    subgraph Phase4 [API & Viz]
-      S08(Step 08: Revenue Prediction API):::api
-      S09(Step 09: Dashboard & Visualization):::viz
-    end
-
-    subgraph Phase5 [DevOps]
-      S10(Step 10: Deployment & Monitoring):::api
-    end
-
-    S01 --> S02 --> S03 --> S04 --> S05 --> S06 --> S07 --> S08 --> S09 --> S10
-    S04 --> S06
-    S07 --> S09
+    UI["💻 Frontend<br>(HTML/CSS/JS)"]:::ui <-->|HTTP/REST| API["🔌 FastAPI Backend<br>(main.py | Port 8000)"]:::api
+    
+    API -->|PaymentEvent JSON<br>(Input)| GR["🛡️ Guardrail Layer<br>(5 Rules)"]:::core
+    
+    GR -->|Passes| ML["🧠 CatBoost Policy Engine<br>(*.cbm model)"]:::core
+    GR -.->|Fails| Forced["🚨 Forced Action<br>(e.g. human_review)"]:::core
+    
+    ML -->|RecoveryDecision<br>(Output)| DB[("💾 SQLite Audit DB<br>(database.py)")]:::db
+    Forced --> DB
 ```
 
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+## 📥 Input & 📤 Output Details
 
-## 📂 Step-by-Step Breakdown
-
-### 🔵 Phase 1 — Project Setup
-- **`Step_01_Project_Overview_and_Setup/`**
-  Environment setup, project configuration, dependency installation. Sets up Python virtual environments, installs required libraries (`pandas`, `sklearn`, `fastapi`, `plotly`), and defines the project configuration schema.
+**Input (PaymentEvent JSON):** The API accepts a payload detailing the failed transaction, including amount, merchant, customer history, previous failures, and device data.  
+**Output (RecoveryDecision):** The API responds with the recommended action (e.g., `smart_retry`, `human_review`), the confidence probability (0.0 to 1.0), and flags indicating if a guardrail triggered the decision.
 
 ---
 
-### 🟦 Phase 2 — Data Engineering
+## ✨ Project Features
 
-- **`Step_02_Data_Collection_and_Ingestion/`**
-  Handles loading revenue data from CSV, databases, or APIs. Sets up ingestion pipelines and data validation checks to ensure data quality from the start.
+### 💻 Operator Dashboard (Frontend)
+- Real-time monitoring of failed transactions.
+- Beautiful, responsive UI to review "Human Review" cases.
+- Analytics and graphs tracking recovery rates.
 
-- **`Step_03_Data_Preprocessing_and_Cleaning/`**
-  Handles missing values, outlier detection, data type normalization, and feature scaling. Transforms raw, noisy data into a clean, structured format ready for analysis.
+### 🛡️ Guardrail Engine & API
+- **FastAPI** backend exposing REST endpoints for transaction processing.
+- A **Guardrail Layer** that forces manual review for high-value or high-risk transactions before hitting the ML model.
 
-- **`Step_04_Exploratory_Data_Analysis/`**
-  Deep statistical analysis using Pandas and Plotly. Generates correlation matrices, revenue trend charts, seasonal decomposition plots, and business KPI summaries.
-
----
-
-### 🟡 Phase 3 — AI / Machine Learning
-
-- **`Step_05_Feature_Engineering/`**
-  Builds predictive features: lag features (revenue from past N months), rolling averages, seasonality flags, and external economic indicators.
-
-- **`Step_06_AI_Model_Training/`**
-  Trains multiple regression models: Linear Regression, Random Forest, XGBoost, and a stacked ensemble. Saves model artifacts using `joblib`.
-
-- **`Step_07_Model_Evaluation_and_Tuning/`**
-  Evaluates models using MAE, RMSE, R² metrics. Uses `GridSearchCV` and `RandomizedSearchCV` for hyperparameter tuning. Selects the best-performing model.
+### 🧠 Machine Learning Engine
+- Uses **CatBoostClassifier** natively handling categorical features without the need for manual one-hot encoding.
+- Incorporates early stopping with AUC-optimised evaluation.
 
 ---
 
-### 🔴 Phase 4 — API & Visualization
+## 🔬 ML Pipeline Workflow
 
-- **`Step_08_Revenue_Prediction_API/`**
-  Serves the trained model as a REST API using **FastAPI**. Accepts business input features and returns revenue predictions with confidence intervals. Includes `/docs` Swagger UI.
+```mermaid
+graph TD
+    classDef file fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef process fill:#e0f7fa,stroke:#006064,stroke-width:2px;
+    classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-- **`Step_09_Dashboard_and_Visualization/`**
-  Interactive **Plotly Dash** dashboard displaying real-time revenue forecasts, trend analysis charts, model performance metrics, and business alerts.
+    subgraph Phase 1: Data Gathering
+        DL["download_datasets.py"]:::process -->|Downloads| Kaggle["Raw Kaggle CSVs<br/>(PaySim, etc.)"]:::file
+    end
+
+    subgraph Phase 2: Feature Engineering
+        Kaggle --> Build["build_recoverai_dataset.py<br/>Engineers 26 Features"]:::process
+        Build --> TrainCSV["recoverai_training.csv<br/>(300k rows)"]:::file
+        Build --> ValCSV["recoverai_validation.csv<br/>(60k rows)"]:::file
+    end
+
+    subgraph Phase 3: Model Training
+        TrainCSV --> Train["train_catboost.py<br/>CatBoost Classifier"]:::process
+        ValCSV --> Train
+        Train --> Model["recoverai_catboost.cbm<br/>(Trained Model)"]:::output
+        Train --> Metrics["metrics.json & feature_importance.csv"]:::output
+    end
+```
 
 ---
 
-### 🐳 Phase 5 — Deployment
+## 📁 Project Structure
 
-- **`Step_10_Deployment_and_Monitoring/`**
-  Containerizes the full stack (API + Dashboard) using **Docker** and `docker-compose`. Includes monitoring setup, health checks, and production deployment guides.
+```text
+Revenue-AI-Tracker/
+│
+├── 📄 README.md                      ← You are here
+├── 📄 LICENSE                        
+│
+├── 🔌 backend/                       ← FastAPI Server & SQLite DB
+├── 🎨 frontend/                      ← HTML/JS/CSS Operator Dashboard
+├── 🧠 model/                         ← Trained CatBoost models (*.cbm)
+│
+├── 📥 download_datasets.py           ← Downloads Raw Kaggle CSVs
+├── 🔧 build_recoverai_dataset.py     ← Builds engineered train/val datasets
+├── 📊 eda_analysis.py                ← Full EDA with graph visualisations
+├── 🤖 train_catboost.py              ← Model training & evaluation script
+├── 🚀 run.py                         ← Launcher Script
+└── ⚙️  Dockerfile                     ← Docker Deployment config
+```
 
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+---
 
-## 🚀 Quick Start
+## ⚡ Quick Start Guide
 
-### 1. Clone the Repository
+Follow these steps to run the complete pipeline locally:
+
+### 1. Setup Environment
 ```bash
 git clone https://github.com/viRAJ357/Revenue-AI-Tracker.git
 cd Revenue-AI-Tracker
+
+# Install required python packages
+pip install -r backend/requirements.txt
 ```
 
-### 2. View the 3D Graph
-Double-click **`index.html`** in any browser — experience the n8n-style rotating 3D flow graph!
-
-### 3. Run the Revenue Prediction API
+### 2. Run the Full Application
+This will start the FastAPI backend and automatically serve the interactive Dashboard on port 8000.
 ```bash
-cd Step_08_Revenue_Prediction_API
-pip install fastapi uvicorn scikit-learn pandas
-uvicorn main:app --reload
+python run.py
 ```
-Visit `http://127.0.0.1:8000/docs` for interactive Swagger UI.
+👉 Open **http://localhost:8000** in your browser.
 
-### 4. Run via Docker
-```bash
-docker-compose up --build
-```
+---
 
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+## 🔌 API Endpoints
 
-## 🧰 Tech Stack
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/process-payment` | Core inference endpoint. Receives transaction JSON and returns recovery decision. |
+| `GET`  | `/api/dashboard-stats` | Aggregated metrics for the dashboard (recovery rate, pending reviews, etc.) |
+| `GET`  | `/api/recent-events` | Fetches the 50 most recent recovery attempts from the audit DB. |
+| `POST` | `/api/approve-action` | Operator endpoint to approve or reject a `human_review` case. |
+| `GET`  | `/api/health` | Health check for the API and Model status. |
 
-| Layer | Technology |
-|---|---|
-| Language | Python 3.10+ |
-| Data Processing | Pandas, NumPy |
-| Machine Learning | scikit-learn, XGBoost |
-| API | FastAPI + Uvicorn |
-| Visualization | Plotly, Dash |
-| Containerization | Docker, docker-compose |
-| 3D Graph | 3d-force-graph.js |
-| Animation | Python Pillow (custom) |
+---
 
 <div align="center">
-  <br/>
-  <i>Built with AI, motion, and Python — end to end.</i>
-  <br/><br/>
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=100&section=footer" width="100%"/>
+
+**Built with ❤️**
+
+*RecoverAI — Turning failed transactions into recovered revenue.*
+
 </div>
