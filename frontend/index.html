@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecoverAI — Payment Recovery Dashboard</title>
+  <meta name="description" content="AI-powered payment failure recovery operator dashboard. Real-time event processing, risk scoring, and intelligent recovery action recommendations." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     NAVBAR
+═══════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-logo">
+    <div class="bolt-icon">⚡</div>
+    <span class="brand-name">RecoverAI</span>
+  </div>
+  <div class="nav-right">
+    <div class="demo-banner" id="demoBanner">
+      ⚠️ Backend offline — Demo Mode
+    </div>
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      System Active
+    </div>
+    <div class="nav-time" id="navTime">00:00:00</div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     DASHBOARD WRAPPER
+═══════════════════════════════════════════ -->
+<main class="dashboard">
+
+  <!-- ══════════ ROW 1: STATS CARDS ══════════ -->
+  <div class="stats-row" id="statsRow">
+
+    <div class="stat-card" id="card-events">
+      <div class="stat-card-header">
+        <span class="stat-label">Total Events Processed</span>
+        <div class="stat-icon indigo">📊</div>
+      </div>
+      <div class="stat-value" id="stat-events">0</div>
+      <div class="stat-sublabel">Payment events analyzed</div>
+      <div class="stat-badge up" id="badge-events">↑ Live</div>
+    </div>
+
+    <div class="stat-card" id="card-rate">
+      <div class="stat-card-header">
+        <span class="stat-label">Recovery Rate</span>
+        <div class="stat-icon green">📈</div>
+      </div>
+      <div class="stat-value green" id="stat-rate">0%</div>
+      <div class="stat-sublabel">Successful recoveries</div>
+      <div class="stat-badge up" id="badge-rate">↑ +2.4% this week</div>
+    </div>
+
+    <div class="stat-card" id="card-risk">
+      <div class="stat-card-header">
+        <span class="stat-label">Avg Risk Score</span>
+        <div class="stat-icon blue">🛡️</div>
+      </div>
+      <div class="stat-value blue" id="stat-risk">0</div>
+      <div class="stat-sublabel">Out of 100 max risk</div>
+      <div class="stat-badge warn" id="badge-risk">⚡ Moderate risk</div>
+    </div>
+
+    <div class="stat-card" id="card-pending">
+      <div class="stat-card-header">
+        <span class="stat-label">Pending Reviews</span>
+        <div class="stat-icon orange">⏱️</div>
+      </div>
+      <div class="stat-value orange" id="stat-pending">0</div>
+      <div class="stat-sublabel">Awaiting operator action</div>
+      <div class="stat-badge warn" id="badge-pending">⚠ Needs attention</div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ ROW 2: MAIN CONTENT ══════════ -->
+  <div class="content-row">
+
+    <!-- LEFT: PROCESS FORM -->
+    <div class="glass-card" style="animation-delay:0.15s;">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-title-icon">⚙️</div>
+          Process Payment Event
+        </div>
+        <div class="refresh-indicator">
+          <span class="refresh-dot"></span>
+          AI Engine Ready
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <!-- Demo Banner (inline, inside form) -->
+        <div class="demo-banner" id="demoBannerForm" style="margin-bottom:14px;">
+          🔌 Backend offline — showing demo mode with simulated data
+        </div>
+
+        <form id="paymentForm" autocomplete="off">
+          <div class="form-grid">
+
+            <!-- Transaction ID -->
+            <div class="form-group full-width">
+              <label class="form-label">Transaction ID</label>
+              <div class="txn-id-display" id="txnIdDisplay" onclick="regenerateTxnId()" title="Click to regenerate">
+                <span id="txnIdText">TXN-loading...</span>
+                <button class="txn-regen-btn" type="button" onclick="event.stopPropagation(); regenerateTxnId()">↻ New</button>
+              </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="form-group">
+              <label class="form-label" for="amount">Amount (₹)</label>
+              <input class="form-control" type="number" id="amount" placeholder="e.g. 4999" min="1" max="999999" required />
+            </div>
+
+            <!-- Payment Method -->
+            <div class="form-group">
+              <label class="form-label" for="paymentMethod">Payment Method</label>
+              <select class="form-control" id="paymentMethod" required>
+                <option value="">Select method</option>
+                <option value="upi">UPI</option>
+                <option value="card">Card</option>
+                <option value="netbanking">NetBanking</option>
+              </select>
+            </div>
+
+            <!-- Bank -->
+            <div class="form-group">
+              <label class="form-label" for="bank">Bank</label>
+              <select class="form-control" id="bank" required>
+                <option value="">Select bank</option>
+                <option value="SBI">SBI</option>
+                <option value="HDFC">HDFC</option>
+                <option value="ICICI">ICICI</option>
+                <option value="Axis">Axis</option>
+                <option value="Kotak">Kotak</option>
+              </select>
+            </div>
+
+            <!-- Error Reason -->
+            <div class="form-group">
+              <label class="form-label" for="errorReason">Error Reason</label>
+              <select class="form-control" id="errorReason" required>
+                <option value="">Select error</option>
+                <option value="insufficient_funds">Insufficient Funds</option>
+                <option value="bank_server_down">Bank Server Down</option>
+                <option value="network_timeout">Network Timeout</option>
+                <option value="wrong_pin">Wrong PIN</option>
+                <option value="card_expired">Card Expired</option>
+                <option value="daily_limit_exceeded">Daily Limit Exceeded</option>
+                <option value="upi_not_linked">UPI Not Linked</option>
+                <option value="fraud_suspected">Fraud Suspected</option>
+              </select>
+            </div>
+
+            <!-- Customer Segment -->
+            <div class="form-group">
+              <label class="form-label" for="customerSegment">Customer Segment</label>
+              <select class="form-control" id="customerSegment" required>
+                <option value="">Select segment</option>
+                <option value="premium">Premium</option>
+                <option value="regular">Regular</option>
+                <option value="new">New</option>
+              </select>
+            </div>
+
+            <!-- Risk Score -->
+            <div class="form-group full-width">
+              <label class="form-label">Risk Score</label>
+              <div class="slider-row">
+                <input type="range" class="risk-slider" id="riskScore" min="0" max="100" value="42"
+                       oninput="updateRiskBadge(this.value)" />
+                <div class="risk-value-badge" id="riskBadge">42</div>
+              </div>
+            </div>
+
+            <!-- Previous Failed Attempts -->
+            <div class="form-group">
+              <label class="form-label" for="prevFailed">Previous Failed Attempts</label>
+              <input class="form-control" type="number" id="prevFailed" min="0" max="5" value="0" required />
+            </div>
+
+          </div><!-- /form-grid -->
+
+          <button class="btn-analyze" type="submit" id="analyzeBtn">
+            <span id="analyzeBtnContent">⚡ Analyze &amp; Get Recovery Action</span>
+          </button>
+        </form>
+
+        <!-- RESULT PANEL -->
+        <div class="result-panel" id="resultPanel">
+
+          <div class="result-header">
+            <div>
+              <div class="text-muted text-sm" style="margin-bottom:6px;">Recommended Action</div>
+              <div class="result-action-badge" id="resultActionBadge">—</div>
+            </div>
+            <div id="guardrailBadge" class="guardrail-badge pass">
+              <span id="guardrailIcon">✓</span>
+              <span id="guardrailText">Guardrails Passed</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="prob-section">
+            <div class="circular-progress">
+              <svg viewBox="0 0 72 72">
+                <circle class="bg-circle" cx="36" cy="36" r="30" />
+                <circle class="prog-circle" id="progCircle" cx="36" cy="36" r="30"
+                        stroke-dasharray="188.5" stroke-dashoffset="188.5" />
+              </svg>
+              <div class="prob-text" id="circleText">0%</div>
+            </div>
+            <div class="prob-info">
+              <div class="prob-label">Recovery Probability</div>
+              <div class="prob-value" id="probValue">—</div>
+              <div class="text-muted text-sm mt-8" id="probContext">Analyzing payment pattern…</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <div class="scores-title">Action Confidence Scores</div>
+            <div id="actionScores"></div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn-approve" id="approveBtn" onclick="submitApproval('approve')">
+              ✓ Approve Action
+            </button>
+            <button class="btn-reject" id="rejectBtn" onclick="submitApproval('reject')">
+              ✗ Reject
+            </button>
+          </div>
+
+        </div><!-- /result-panel -->
+
+      </div><!-- /card-body -->
+    </div><!-- /glass-card left -->
+
+    <!-- RIGHT COLUMN -->
+    <div class="right-col">
+
+      <!-- RECENT EVENTS TABLE -->
+      <div class="glass-card" style="animation-delay:0.25s;">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">🕐</div>
+            Recent Recovery Events
+          </div>
+          <div class="refresh-indicator">
+            <span class="refresh-dot"></span>
+            <span id="recentRefreshLabel">Live</span>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table id="recentTable">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Amount</th>
+                  <th>Error</th>
+                  <th>Action</th>
+                  <th>Prob</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recentTableBody">
+                <tr><td colspan="6" class="empty-state"><div class="empty-icon">📡</div>Loading events…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DONUT CHART -->
+        <div class="divider" style="margin:0 16px;"></div>
+        <div class="card-header" style="border-bottom:none; padding-bottom:4px;">
+          <div class="card-title" style="font-size:12px;">Action Distribution</div>
+        </div>
+        <div class="donut-section" id="donutSection">
+          <div class="donut-wrap">
+            <svg id="donutSvg" width="90" height="90" viewBox="0 0 90 90">
+              <!-- Filled dynamically -->
+            </svg>
+            <div class="donut-center-text">
+              <span class="d-num" id="donutTotal">—</span>
+              <span class="d-lbl">Events</span>
+            </div>
+          </div>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+
+      </div><!-- /recent events card -->
+
+    </div><!-- /right-col -->
+  </div><!-- /content-row -->
+
+  <!-- ══════════ ROW 3: AUDIT TRAIL ══════════ -->
+  <div class="glass-card audit-row">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon">📋</div>
+        Audit Trail
+        <span style="font-size:10px; color:var(--text-muted); font-weight:500; margin-left:6px;" id="auditCount">(0 events)</span>
+      </div>
+      <div class="audit-header-row" style="gap:12px;">
+        <div class="refresh-indicator">
+          <span class="refresh-dot"></span>
+          Auto-saving
+        </div>
+        <button class="btn-export" id="exportBtn" onclick="exportCSV()">
+          ⬇ Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body" style="padding:0;">
+      <div class="audit-table-wrap table-wrapper">
+        <table id="auditTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Timestamp</th>
+              <th>Transaction ID</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Bank</th>
+              <th>Error</th>
+              <th>Segment</th>
+              <th>Risk</th>
+              <th>Action</th>
+              <th>Probability</th>
+              <th>Guardrail</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <tr><td colspan="13" class="empty-state"><div class="empty-icon">📂</div>No events logged yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
