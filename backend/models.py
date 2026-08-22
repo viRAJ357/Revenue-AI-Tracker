@@ -85,7 +85,7 @@ class PaymentEvent(BaseModel):
     )
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "transaction_id": "TXN-DEMO-001",
                 "amount": 4999.0,
@@ -152,7 +152,7 @@ class RecoveryDecision(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "transaction_id": "TXN-DEMO-001",
                 "recommended_action": "smart_retry",

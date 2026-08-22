@@ -27,98 +27,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install catboost pandas scikit-learn fastapi uvicorn pydantic
 
-      # ── 4. Verify pre-trained model loads ──────────────────────────────────
-      - name: Verify pre-trained CatBoost model
-        run: |
-          python -c "
-          from catboost import CatBoostClassifier
-          import json, os
+      # ── 4. Run full CI verification suite ──────────────────────────────────
+      - name: Verify model, backend & inference
+        run: python ci_local_test.py
 
-          model_path = 'model/recoverai_catboost.cbm'
-          assert os.path.exists(model_path), f'Model not found: {model_path}'
-
-          model = CatBoostClassifier()
-          model.load_model(model_path)
-          print('SUCCESS: CatBoost model loaded!')
-          print(f'  Tree count : {model.tree_count_}')
-          print(f'  Features   : {len(model.feature_names_)}')
-
-          with open('model/metrics.json') as f:
-              m = json.load(f)
-          print(f'  AUC-ROC    : {m[\"auc_roc\"]}')
-          print(f'  Accuracy   : {m[\"accuracy\"]}')
-          print(f'  F1 Score   : {m[\"f1_score\"]}')
-          print('All checks passed!')
-          "
-
-      # ── 5. Verify backend imports ──────────────────────────────────────────
-      - name: Verify backend modules
-        run: |
-          python -c "
-          import sys
-          sys.path.insert(0, 'backend')
-          from models import PaymentEvent, RecoveryDecision
-          from guardrails import check_guardrails, summarize_guardrails
-          from policy import get_best_action, is_model_loaded
-          print('SUCCESS: All backend modules imported!')
-          print(f'  Model loaded: {is_model_loaded()}')
-          g = summarize_guardrails()
-          print(f'  Guardrail rules: {len(g[\"rules\"])}')
-          "
-
-      # ── 6. Run a full inference test ───────────────────────────────────────
-      - name: Run end-to-end inference test
-        run: |
-          python -c "
-          import sys
-          sys.path.insert(0, 'backend')
-          from models import PaymentEvent
-          from guardrails import check_guardrails
-          from policy import get_best_action
-
-          # Create a realistic test event
-          event = PaymentEvent(
-              transaction_id='TXN-CI-TEST-001',
-              amount=1499.0,
-              payment_method='upi',
-              bank='HDFC',
-              error_reason='insufficient_funds',
-              customer_id='CUST-CI-001',
-              customer_segment='premium',
-              opt_out_notification=False,
-              device_type='mobile',
-              channel='app',
-              region='South',
-              customer_age=28,
-              account_balance=500.0,
-              customer_tenure_months=36,
-              previous_failed_attempts=1,
-              retry_count=0,
-              risk_score=22.0,
-              merchant_category='ecommerce',
-              card_type='NA',
-              hour_of_day=15,
-              day_of_week=3,
-              is_weekend=0,
-              time_since_last_failure_hr=3.0,
-              transaction_frequency_30d=8,
-              recovery_attempt_count=0,
-              notification_sent=0,
-          )
-
-          # Test guardrails
-          triggered, action, reason = check_guardrails(event)
-          print(f'Guardrails triggered: {triggered}')
-
-          # Test ML inference
-          rec_action, prob, scores = get_best_action(event)
-          print(f'Recommended action  : {rec_action}')
-          print(f'Recovery probability: {prob:.4f}')
-          print(f'All action scores   : {scores}')
-          print('SUCCESS: Full inference pipeline working!')
-          "
-
-      # ── 7. Upload model artefacts ──────────────────────────────────────────
+      # ── 5. Upload model artefacts ──────────────────────────────────────────
       - name: Upload model artefacts
         uses: actions/upload-artifact@v4
         with:
