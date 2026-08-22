@@ -1,0 +1,49 @@
+# ── Large raw datasets (too big for GitHub, >50 MB) ──────────────────────────
+datasets/recoverai_training.csv
+datasets/recoverai_validation.csv
+datasets/online_payments/
+datasets/paysim/
+datasets/credit_card_fraud/
+datasets/financial_transactions/
+datasets/bank_transactions/
+
+# Keep sample / processed datasets if added later
+# !datasets/sample_*.csv
+
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── CatBoost training logs (auto-generated) ───────────────────────────────────
+catboost_info/
+
+# ── SQLite / audit database ───────────────────────────────────────────────────
+*.db
+
+# ── OS / editor artefacts ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Environment variables ─────────────────────────────────────────────────────
+.env
+.env.*
