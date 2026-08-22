@@ -2,8 +2,6 @@
 
 # 🚀 RecoverAI — Intelligent Payment Recovery System
 
-### *National Level Hackathon Submission*
-
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![CatBoost](https://img.shields.io/badge/CatBoost-ML_Engine-FFCC00?style=for-the-badge&logo=yandex&logoColor=black)](https://catboost.ai)
@@ -447,14 +445,13 @@ curl -X GET http://localhost:8000/api/demo-event
 | **Repository** | https://github.com/viRAJ357/AI-Revenue-recovery-421 |
 | **Model AUC** | 0.8207 |
 | **Dataset Size** | 300,000 training rows |
-| **Hackathon** | National Level Submission |
 | **License** | MIT |
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for the National Level Hackathon**
+**Built with ❤️**
 
 *RecoverAI — Turning failed transactions into recovered revenue.*
 
