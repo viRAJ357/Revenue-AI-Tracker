@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  train_and_test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install catboost pandas scikit-learn
+
+      - name: Run training script
+        run: |
+          python train_catboost.py
+
+      - name: Upload model artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artefacts
+          path: |
+            model/recoverai_catboost.cbm
+            model/feature_importance.csv
+            model/metrics.json
