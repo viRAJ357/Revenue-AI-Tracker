@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8001/api';
+const API_BASE = '/api';
 
 async function fetchAnalyticsData() {
     const token = localStorage.getItem('recoverai_token');

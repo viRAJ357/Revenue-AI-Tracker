@@ -6,7 +6,7 @@
 'use strict';
 
 /* ─── Config ─── */
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 const STATS_REFRESH_MS  = 30_000;
 const EVENTS_REFRESH_MS = 10_000;
 
@@ -742,7 +742,8 @@ function toggleLiveFeed(e) {
     label.textContent = 'Live Feed ON';
     
     // Connect to WebSocket
-    const wsUrl = 'ws://localhost:8000/api/ws/live-events';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/live-events`;
     liveWs = new WebSocket(wsUrl);
     
     liveWs.onmessage = (event) => {

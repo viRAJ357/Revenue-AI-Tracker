@@ -10,20 +10,21 @@ WORKDIR /app
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source and the trained ML model
+# Copy backend source, frontend, and the trained ML model
 COPY backend/ ./backend/
+COPY frontend/ ./frontend/
 COPY model/ ./model/
 
 WORKDIR /app/backend
 
-EXPOSE 8000
+EXPOSE 7860
 
 # Use gunicorn with uvicorn workers for production concurrency.
 # Override with CMD in docker-compose for celery worker.
 CMD ["gunicorn", "main:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--workers", "2", \
-     "--bind", "0.0.0.0:8000", \
+     "--bind", "0.0.0.0:7860", \
      "--timeout", "120", \
      "--access-logfile", "-", \
      "--error-logfile", "-"]

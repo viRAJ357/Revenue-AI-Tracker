@@ -40,6 +40,8 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 from fastapi import FastAPI, HTTPException, status, Depends, WebSocket, WebSocketDisconnect, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
@@ -709,6 +711,15 @@ async def demo_event() -> PaymentEvent:
         notification_sent=0,
     )
 
+
+# ===========================================================================
+# Serve Frontend
+# ===========================================================================
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+if os.path.isdir(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+else:
+    logger.warning(f"Frontend directory not found at {frontend_dir}")
 
 # ===========================================================================
 # Dev entrypoint
