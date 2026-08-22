@@ -97,30 +97,42 @@ RecoverAI predicts — within milliseconds — **whether a failed transaction wi
 
 The project is built around the **3-D (Data → Deploy) model** orchestrated by the **GSOX Motion Workflow** — a structured pipeline that ensures every stage is auditable, reproducible, and production-ready.
 
-```
-╔══════════════════════════════════════════════════════════════════════════╗
-║                    GSOX MOTION WORKFLOW — 3D PIPELINE                   ║
-╠══════════════╦══════════════════════╦═══════════════════════════════════╣
-║   DIMENSION  ║       STAGE          ║            GSOX MOTION            ║
-╠══════════════╬══════════════════════╬═══════════════════════════════════╣
-║              ║ Raw Data Collection  ║  G → Gather (download_datasets)   ║
-║  D1 — DATA   ║ Feature Engineering  ║  S → Structure (build_dataset)    ║
-║              ║ Train/Val Split      ║  O → Organise (300K / 60K rows)   ║
-╠══════════════╬══════════════════════╬═══════════════════════════════════╣
-║              ║ CatBoost Training    ║  G → Generate (train_catboost)    ║
-║  D2 — MODEL  ║ Guardrail Layer      ║  S → Secure (guardrails.py)       ║
-║              ║ Evaluation & Metrics ║  O → Optimise (AUC 0.82)          ║
-╠══════════════╬══════════════════════╬═══════════════════════════════════╣
-║              ║ FastAPI Server       ║  G → Gate (API endpoints)         ║
-║  D3 — DEPLOY ║ Frontend Dashboard   ║  S → Show (operator UI)           ║
-║              ║ CI/CD Pipeline       ║  O → Operate (GitHub Actions)     ║
-╚══════════════╩══════════════════════╩═══════════════════════════════════╝
-                              X → eXplain (audit trail + feature importance)
-```
+```mermaid
+graph TD
+    classDef data fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef model fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef deploy fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef gsox fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
 
----
+    subgraph D1["🔷 D1 — DATA DIMENSION"]
+        G1["Gather<br/>(Raw Data Collection)"]:::data
+        S1["Structure<br/>(Feature Engineering)"]:::data
+        O1["Organise<br/>(Train/Val Split)"]:::data
+        G1 --> S1 --> O1
+    end
 
-## 🏗️ System Architecture
+    subgraph D2["🧠 D2 — MODEL DIMENSION"]
+        G2["Generate<br/>(CatBoost Training)"]:::model
+        S2["Secure<br/>(Guardrail Layer)"]:::model
+        O2["Optimise<br/>(Evaluation & Metrics)"]:::model
+        G2 --> S2 --> O2
+    end
+
+    subgraph D3["🚀 D3 — DEPLOY DIMENSION"]
+        G3["Gate<br/>(FastAPI Server)"]:::deploy
+        S3["Show<br/>(Frontend Dashboard)"]:::deploy
+        O3["Operate<br/>(CI/CD Pipeline)"]:::deploy
+        G3 --> S3 --> O3
+    end
+
+    O1 --> G2
+    O2 --> G3
+
+    X["X → eXplain (Audit Trail & Insights)"]:::gsox
+    D1 -.-> X
+    D2 -.-> X
+    D3 -.-> X
+```
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -171,111 +183,43 @@ The project is built around the **3-D (Data → Deploy) model** orchestrated by 
 
 ## 🔬 Advanced Pipeline Diagram
 
+```mermaid
+graph TD
+    classDef stage fill:#ede7f6,stroke:#5e35b1,stroke-width:2px;
+    classDef file fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef process fill:#e0f7fa,stroke:#006064,stroke-width:2px;
+    classDef cicd fill:#ffebee,stroke:#c62828,stroke-width:2px;
+
+    subgraph S1["📊 Stage 1: Data Collection & Engineering"]
+        Kaggle["Kaggle Datasets"]:::file --> Build["build_recoverai_dataset.py<br>Engineer 26 Features"]:::process
+        Build --> TrainCSV["recoverai_training.csv<br>(300k rows)"]:::file
+        Build --> ValCSV["recoverai_validation.csv<br>(60k rows)"]:::file
+    end
+
+    subgraph S2["🧠 Stage 2: Model Training"]
+        TrainCSV --> Catboost["train_catboost.py<br>CatBoost Classifier"]:::process
+        ValCSV --> Catboost
+        Catboost --> ModelFile["recoverai_catboost.cbm"]:::file
+        Catboost --> Metrics["metrics.json & feature_importance.csv"]:::file
+    end
+
+    subgraph S3["⚡ Stage 3: Inference Pipeline"]
+        Input["Incoming Failed Transaction<br>(Input Features)"]:::file --> Guardrails["Guardrail Engine"]:::process
+        Guardrails -->|All Pass| Policy["CatBoost Policy Engine"]:::process
+        Policy --> Output["Recovery Decision<br>(Action, Probability)"]:::file
+        Guardrails -->|Fails Rule| Output
+        Output --> Audit["SQLite Audit Log"]:::file
+    end
+    
+    subgraph S4["🔄 Stage 4: CI/CD Pipeline"]
+        Push["git push"]:::cicd --> Setup["Python & Dependencies Setup"]:::cicd
+        Setup --> Train["python train_catboost.py"]:::cicd
+        Train --> Artifacts["Upload Artefacts"]:::cicd
+    end
+    
+    S1 --> S2 --> S3
+    S2 -.-> S4
 ```
-                    ╔════════════════════════════════════════╗
-                    ║         RECOVERAI FULL PIPELINE        ║
-                    ╚════════════════════════════════════════╝
-
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │  STAGE 1 — DATA COLLECTION & ENGINEERING                            │
-  │                                                                     │
-  │  [Kaggle Datasets]──►[download_datasets.py]──►[Raw CSVs]           │
-  │       • bank_transactions                                           │
-  │       • credit_card_fraud                                           │
-  │       • financial_transactions                                      │
-  │       • online_payments (PaySim)                                    │
-  │                    │                                                │
-  │                    ▼                                                │
-  │  [build_recoverai_dataset.py]                                       │
-  │       • Merge & clean 5 datasets                                    │
-  │       • Engineer 26 features                                        │
-  │       • Synthetic target: recovered_within_72h                      │
-  │       • 80/20 train-val split                                       │
-  │                    │                                                │
-  │          ┌─────────┴──────────┐                                    │
-  │          ▼                    ▼                                     │
-  │  [recoverai_training.csv]  [recoverai_validation.csv]              │
-  │     300,000 rows               60,000 rows                         │
-  └─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │  STAGE 2 — MODEL TRAINING (train_catboost.py)                      │
-  │                                                                     │
-  │  [Load Data] ──► [Feature Selection: 26 features]                  │
-  │                          │                                          │
-  │                          ▼                                          │
-  │  [CatBoost Pool] ──► [CatBoostClassifier]                          │
-  │       • iterations=500        • learning_rate=0.05                 │
-  │       • depth=7               • l2_leaf_reg=3                      │
-  │       • early_stop=50         • eval_metric=AUC                    │
-  │       • task_type=CPU         • thread_count=-1 (all cores)        │
-  │                          │                                          │
-  │                          ▼                                          │
-  │  [Best Iteration: 163] ──► [Evaluate on Val Set]                   │
-  │                          │                                          │
-  │              ┌───────────┼────────────┐                            │
-  │              ▼           ▼            ▼                            │
-  │  [recoverai_catboost.cbm] [metrics.json] [feature_importance.csv] │
-  └─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │  STAGE 3 — INFERENCE PIPELINE (Runtime)                            │
-  │                                                                     │
-  │  Incoming Failed Transaction                                        │
-  │         │                                                           │
-  │         ▼                                                           │
-  │  ┌──────────────────────────────────────┐                          │
-  │  │         GUARDRAIL ENGINE              │                          │
-  │  │  Rule 1: risk_score ≥ 80?            │──► human_review          │
-  │  │  Rule 2: gateway risk check failed?  │──► human_review          │
-  │  │  Rule 3: failed_attempts ≥ 4?        │──► human_review          │
-  │  │  Rule 4: amount > ₹50,000?           │──► human_review          │
-  │  │  Rule 5: retry_count ≥ 3?            │──► smart_delay           │
-  │  │  All pass → ML decides               │                          │
-  │  └──────────────────────────────────────┘                          │
-  │         │ (if all pass)                                             │
-  │         ▼                                                           │
-  │  ┌──────────────────────────────────────┐                          │
-  │  │      CATBOOST POLICY ENGINE          │                          │
-  │  │  Inputs: 26 features                 │                          │
-  │  │  Output: recovery_probability (0-1)  │                          │
-  │  │  Action: argmax(action_scores)       │                          │
-  │  └──────────────────────────────────────┘                          │
-  │         │                                                           │
-  │         ▼                                                           │
-  │  RecoveryDecision {                                                 │
-  │    recommended_action: "smart_retry",                               │
-  │    recovery_probability: 0.847,                                     │
-  │    guardrail_triggered: false,                                      │
-  │    all_action_scores: { ... }                                       │
-  │  }                                                                  │
-  │         │                                                           │
-  │         ▼                                                           │
-  │  [SQLite Audit Log] ◄──────── [Operator Dashboard]                 │
-  └─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │  STAGE 4 — CI/CD (GitHub Actions)                                  │
-  │                                                                     │
-  │  [git push] ──► [Checkout] ──► [Python 3.11 setup]                │
-  │                                        │                            │
-  │                                        ▼                            │
-  │               [pip install catboost pandas scikit-learn]            │
-  │                                        │                            │
-  │                                        ▼                            │
-  │                          [python train_catboost.py]                 │
-  │                                        │                            │
-  │                                        ▼                            │
-  │                  [Upload Artefacts: *.cbm, metrics.json]            │
-  └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🤖 ML Model Details
 
 ### Features Used (26 total)
 
