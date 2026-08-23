@@ -1,11 +1,13 @@
 # ── Large raw datasets (too big for GitHub, >50 MB) ──────────────────────────
-datasets/recoverai_training.csv
-datasets/recoverai_validation.csv
-datasets/online_payments/
-datasets/paysim/
-datasets/credit_card_fraud/
-datasets/financial_transactions/
-datasets/bank_transactions/
+datasets/
+
+# ── Large ML model binary (too big for GitHub) ────────────────────────────────
+*.cbm
+
+# ── Temp/test files ───────────────────────────────────────────────────────────
+Dockerfile.test
+tunnel.log
+scratch/
 
 # Keep sample / processed datasets if added later
 # !datasets/sample_*.csv
