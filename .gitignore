@@ -48,5 +48,5 @@ Thumbs.db
 
 # ── Environment variables ─────────────────────────────────────────────────────
 .env
-recoverai_audit.db
 *.db
+datasets/
