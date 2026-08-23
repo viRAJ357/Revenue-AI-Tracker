@@ -192,9 +192,10 @@ class LoginRequest(BaseModel):
 # ===========================================================================
 # Auth endpoints
 # ===========================================================================
+from fastapi.security import OAuth2PasswordRequestForm
 
 @app.post("/api/login", tags=["Auth"])
-async def login(req: LoginRequest):
+async def login(req: OAuth2PasswordRequestForm = Depends()):
     """
     Validates credentials against the database and returns a signed JWT.
     Uses bcrypt to verify the stored password hash.
