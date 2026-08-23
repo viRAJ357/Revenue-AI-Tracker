@@ -195,22 +195,14 @@ function showToast(message, type = 'info', duration = 4000) {
 
 /* ─── API Fetch Wrapper ─── */
 async function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('recoverai_token');
+  // No login required — public dashboard mode
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
   });
   
-  if (response.status === 401) {
-    window.location.href = 'login.html';
-    throw new Error('Unauthorized');
-  }
-
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return await response.json();
 }
@@ -234,7 +226,7 @@ function disableDemoMode() {
 /* ─── LOGOUT ─── */
 function logout() {
   localStorage.removeItem('recoverai_token');
-  window.location.href = 'login.html';
+  // window.location.href = 'login.html';
 }
 
 /* ─── LOAD STATS ─── */
@@ -585,7 +577,7 @@ async function submitApproval(decision) {
     decision,
     notes: null,
   };
-  const token = localStorage.getItem('recoverai_token');
+  const token = 'dummy_token_bypass';
 
   try {
     // Backend endpoint: POST /api/approve-action
@@ -836,7 +828,7 @@ async function handleCsvUpload(file) {
   document.getElementById('uploadPercent').textContent = 'Uploading...';
 
   try {
-    const token = localStorage.getItem('recoverai_token');
+    const token = 'dummy_token_bypass';
     const response = await fetch(`${API_BASE}/upload-csv`, {
       method: 'POST',
       headers: {
@@ -846,7 +838,7 @@ async function handleCsvUpload(file) {
     });
 
     if (response.status === 401) {
-      window.location.href = 'login.html';
+      // window.location.href = 'login.html';
       return;
     }
 
@@ -875,11 +867,7 @@ async function handleCsvUpload(file) {
 
 /* ─── INIT ─── */
 async function init() {
-  if (!localStorage.getItem('recoverai_token')) {
-    window.location.href = 'login.html';
-    return;
-  }
-
+  // No auth check — dashboard is publicly accessible
   startClock();
   regenerateTxnId();
   updateRiskBadge(document.getElementById('riskScore').value);

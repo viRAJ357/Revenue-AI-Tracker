@@ -427,7 +427,7 @@ async def upload_csv(file: UploadFile = File(...), token: dict = Depends(verify_
     summary="Aggregate analytics for the operator dashboard",
     tags=["Analytics"],
 )
-async def dashboard_stats(token: dict = Depends(verify_token)) -> Dict[str, Any]:
+async def dashboard_stats(token: dict = Depends(lambda: "public")) -> Dict[str, Any]:
     """
     Returns aggregate statistics for the operator dashboard:
     - Total events processed
@@ -469,7 +469,7 @@ async def dashboard_stats(token: dict = Depends(verify_token)) -> Dict[str, Any]
     summary="Retrieve the 50 most recent recovery events",
     tags=["Analytics"],
 )
-async def recent_events(token: dict = Depends(verify_token)) -> Dict[str, Any]:
+async def recent_events(token: dict = Depends(lambda: "public")) -> Dict[str, Any]:
     """
     Returns the last 50 recovery decisions stored in the audit database,
     ordered by timestamp descending (newest first).
@@ -494,7 +494,7 @@ async def recent_events(token: dict = Depends(verify_token)) -> Dict[str, Any]:
     summary="Retrieve time-series analytics data for charts",
     tags=["Analytics"],
 )
-async def analytics_data(token: dict = Depends(verify_token)) -> Dict[str, Any]:
+async def analytics_data(token: dict = Depends(lambda: "public")) -> Dict[str, Any]:
     try:
         from database import SessionLocal, RecoveryEvent
         db = SessionLocal()
@@ -717,7 +717,21 @@ async def demo_event() -> PaymentEvent:
 # Serve Frontend
 # ===========================================================================
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+
+# Explicit root route — always serve dashboard directly, skip login page
 if os.path.isdir(frontend_dir):
+    from fastapi.responses import RedirectResponse
+
+    @app.get("/", include_in_schema=False)
+    async def root():
+        """Redirect root to dashboard directly (bypass login)."""
+        return RedirectResponse(url="/index.html", status_code=302)
+
+    @app.get("/login.html", include_in_schema=False)
+    async def skip_login():
+        """Redirect login page to dashboard directly."""
+        return RedirectResponse(url="/index.html", status_code=302)
+
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 else:
     logger.warning(f"Frontend directory not found at {frontend_dir}")
